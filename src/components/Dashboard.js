@@ -238,6 +238,34 @@ function PositioningMatrix({ data }) {
     setDragEnd(null);
   };
 
+  const handleWheel = (e) => {
+    if (!e.metaKey && !e.ctrlKey) return;
+    e.preventDefault();
+    const pt = pixelToDomain(e.clientX, e.clientY);
+    if (!pt) return;
+    const factor = e.deltaY < 0 ? 0.8 : 1.25; // scroll up = zoom in, down = zoom out
+    const xRange = zoom.x[1] - zoom.x[0];
+    const yRange = zoom.y[1] - zoom.y[0];
+    const newXRange = Math.min(11, xRange * factor);
+    const newYRange = Math.min(11, yRange * factor);
+    // If zooming out beyond full range, reset
+    if (newXRange >= 11 && newYRange >= 11) {
+      setZoom({ x: [0, 11], y: [0, 11] });
+      return;
+    }
+    // Zoom centered on cursor position
+    const xRatio = (pt.x - zoom.x[0]) / xRange;
+    const yRatio = (pt.y - zoom.y[0]) / yRange;
+    const newX0 = pt.x - xRatio * newXRange;
+    const newX1 = pt.x + (1 - xRatio) * newXRange;
+    const newY0 = pt.y - yRatio * newYRange;
+    const newY1 = pt.y + (1 - yRatio) * newYRange;
+    setZoom({
+      x: [Math.max(0, newX0), Math.min(11, newX1)],
+      y: [Math.max(0, newY0), Math.min(11, newY1)],
+    });
+  };
+
   const renderLabel = (props) => {
     const { value, index, cx, cy, x, y, width, height } = props;
     const item = chartData[index];
@@ -257,7 +285,7 @@ function PositioningMatrix({ data }) {
         <div>
           <h3 style={{ color: t.text, margin: 0, fontSize: 18, fontWeight: 700 }}>Automation Depth vs. Market Breadth</h3>
           <p style={{ color: t.textMuted, margin: "4px 0 0", fontSize: 13 }}>
-            Bubble size = log revenue. Showing {data.length} platforms. Drag to zoom.
+            Bubble size = log revenue. Showing {data.length} platforms. {"\u2318"}+scroll to zoom, drag to select area.
           </p>
         </div>
         {isZoomed && (
@@ -279,6 +307,7 @@ function PositioningMatrix({ data }) {
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={() => { setDragStart(null); setDragEnd(null); }}
+        onWheel={handleWheel}
         style={{ cursor: dragStart ? "crosshair" : "crosshair", userSelect: "none" }}
       >
         <ResponsiveContainer width="100%" height={560}>

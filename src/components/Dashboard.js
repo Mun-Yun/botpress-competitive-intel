@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   ScatterChart, Scatter, ZAxis, Cell, PieChart, Pie,
@@ -24,6 +24,8 @@ const CAT_COLORS = {
   "CCaaS / Contact Center": "#ec4899",
   "Managed Service": "#06b6d4",
 };
+
+const ALL_CATEGORIES = Object.keys(CAT_COLORS);
 
 const AI_COLORS = {
   "AI-First": "#8b5cf6",
@@ -96,33 +98,73 @@ function TT({ active, payload }) {
   );
 }
 
+// ── CATEGORY FILTER ──
+function CategoryFilter({ selected, onToggle }) {
+  const allSelected = selected.length === ALL_CATEGORIES.length;
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 20 }}>
+      <button
+        onClick={() => onToggle("ALL")}
+        style={{
+          background: allSelected ? C.accent : "transparent",
+          color: allSelected ? "#fff" : C.textMuted,
+          border: `1px solid ${allSelected ? C.accent : C.border}`,
+          borderRadius: 20, padding: "5px 14px",
+          fontSize: 12, fontWeight: 600, cursor: "pointer",
+          transition: "all 0.15s",
+        }}
+      >
+        All ({competitors.length})
+      </button>
+      {ALL_CATEGORIES.map(cat => {
+        const active = selected.includes(cat);
+        const count = competitors.filter(c => c.category === cat).length;
+        return (
+          <button
+            key={cat}
+            onClick={() => onToggle(cat)}
+            style={{
+              background: active ? CAT_COLORS[cat] + "22" : "transparent",
+              color: active ? CAT_COLORS[cat] : C.textMuted,
+              border: `1px solid ${active ? CAT_COLORS[cat] : C.border}`,
+              borderRadius: 20, padding: "5px 14px",
+              fontSize: 12, fontWeight: 600, cursor: "pointer",
+              transition: "all 0.15s",
+              display: "flex", alignItems: "center", gap: 6,
+            }}
+          >
+            <div style={{
+              width: 8, height: 8, borderRadius: "50%",
+              background: active ? CAT_COLORS[cat] : C.border,
+              transition: "all 0.15s",
+            }} />
+            {cat} ({count})
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── 1. POSITIONING MATRIX ──
-function PositioningMatrix() {
-  const data = competitors.map(c => ({
+function PositioningMatrix({ data }) {
+  const chartData = data.map(c => ({
     ...c, x: c.marketBreadth, y: c.automationDepth,
     z: Math.max(Math.log10(c.revenue || 10) * 120, 80),
   }));
   return (
     <div>
       <h3 style={{ color: C.text, margin: "0 0 4px", fontSize: 18, fontWeight: 700 }}>Automation Depth vs. Market Breadth</h3>
-      <p style={{ color: C.textMuted, margin: "0 0 16px", fontSize: 13 }}>Bubble size = log revenue. X = market breadth (1-10). Y = AI automation depth (1-10).</p>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
-        {Object.entries(CAT_COLORS).map(([cat, col]) => (
-          <div key={cat} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <div style={{ width: 10, height: 10, borderRadius: "50%", background: col }} />
-            <span style={{ color: C.textMuted, fontSize: 12 }}>{cat}</span>
-          </div>
-        ))}
-      </div>
+      <p style={{ color: C.textMuted, margin: "0 0 16px", fontSize: 13 }}>Bubble size = log revenue. Showing {data.length} platforms.</p>
       <ResponsiveContainer width="100%" height={520}>
         <ScatterChart margin={{ top: 20, right: 30, bottom: 40, left: 30 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-          <XAxis type="number" dataKey="x" domain={[0, 11]} tick={{ fill: C.textMuted, fontSize: 11 }} label={{ value: "Market Breadth →", position: "bottom", offset: 15, fill: C.textMuted, fontSize: 12 }} />
-          <YAxis type="number" dataKey="y" domain={[0, 11]} tick={{ fill: C.textMuted, fontSize: 11 }} label={{ value: "AI Automation Depth →", angle: -90, position: "insideLeft", offset: -10, fill: C.textMuted, fontSize: 12 }} />
+          <XAxis type="number" dataKey="x" domain={[0, 11]} tick={{ fill: C.textMuted, fontSize: 11 }} label={{ value: "Market Breadth \u2192", position: "bottom", offset: 15, fill: C.textMuted, fontSize: 12 }} />
+          <YAxis type="number" dataKey="y" domain={[0, 11]} tick={{ fill: C.textMuted, fontSize: 11 }} label={{ value: "AI Automation Depth \u2192", angle: -90, position: "insideLeft", offset: -10, fill: C.textMuted, fontSize: 12 }} />
           <ZAxis type="number" dataKey="z" range={[40, 600]} />
           <Tooltip content={<TT />} />
-          <Scatter data={data}>
-            {data.map((e, i) => <Cell key={i} fill={CAT_COLORS[e.category] || C.accent} fillOpacity={0.8} stroke={CAT_COLORS[e.category] || C.accent} strokeWidth={1} />)}
+          <Scatter data={chartData}>
+            {chartData.map((e, i) => <Cell key={i} fill={CAT_COLORS[e.category] || C.accent} fillOpacity={0.8} stroke={CAT_COLORS[e.category] || C.accent} strokeWidth={1} />)}
             <LabelList dataKey="name" position="top" style={{ fill: C.textMuted, fontSize: 9, fontWeight: 500 }} offset={8} />
           </Scatter>
         </ScatterChart>
@@ -145,13 +187,13 @@ function PositioningMatrix() {
 }
 
 // ── 2. REVENUE ──
-function RevenueFunding() {
-  const top = [...competitors].filter(c => c.revenue > 0).sort((a, b) => b.revenue - a.revenue).slice(0, 20);
+function RevenueFunding({ data }) {
+  const top = [...data].filter(c => c.revenue > 0).sort((a, b) => b.revenue - a.revenue).slice(0, 20);
   return (
     <div>
-      <h3 style={{ color: C.text, margin: "0 0 4px", fontSize: 18, fontWeight: 700 }}>Revenue / ARR Comparison (Top 20)</h3>
-      <p style={{ color: C.textMuted, margin: "0 0 16px", fontSize: 13 }}>Estimated or reported revenue in $M. Mix of public filings, reported ARR, and industry estimates.</p>
-      <ResponsiveContainer width="100%" height={560}>
+      <h3 style={{ color: C.text, margin: "0 0 4px", fontSize: 18, fontWeight: 700 }}>Revenue / ARR Comparison</h3>
+      <p style={{ color: C.textMuted, margin: "0 0 16px", fontSize: 13 }}>Showing {top.length} platforms. Mix of public filings, reported ARR, and industry estimates.</p>
+      <ResponsiveContainer width="100%" height={Math.max(top.length * 32, 200)}>
         <BarChart data={top} layout="vertical" margin={{ top: 5, right: 50, bottom: 5, left: 120 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={C.border} horizontal={false} />
           <XAxis type="number" tick={{ fill: C.textMuted, fontSize: 11 }} tickFormatter={v => v >= 1000 ? `$${(v/1000).toFixed(1)}B` : `$${v}M`} />
@@ -179,35 +221,31 @@ function RevenueFunding() {
 }
 
 // ── 3. PRICING ──
-function PricingModels() {
+function PricingModels({ data }) {
   const types = [
-    { model: "Seat-based", count: 0, platforms: [] },
-    { model: "Per-resolution", count: 0, platforms: [] },
-    { model: "Seat + Resolution", count: 0, platforms: [] },
-    { model: "Usage / Conversation", count: 0, platforms: [] },
-    { model: "Outcome-based", count: 0, platforms: [] },
-    { model: "Enterprise custom", count: 0, platforms: [] },
-    { model: "Managed service", count: 0, platforms: [] },
-    { model: "Freemium", count: 0, platforms: [] },
+    { model: "Seat-based", count: 0 }, { model: "Per-resolution", count: 0 },
+    { model: "Seat + Resolution", count: 0 }, { model: "Usage / Conversation", count: 0 },
+    { model: "Outcome-based", count: 0 }, { model: "Enterprise custom", count: 0 },
+    { model: "Managed service", count: 0 }, { model: "Freemium", count: 0 },
   ];
-  competitors.forEach(c => {
+  data.forEach(c => {
     const pm = c.pricingModel.toLowerCase();
-    if (pm.includes("managed")) { types[6].count++; types[6].platforms.push(c.name); }
-    else if (pm.includes("outcome")) { types[4].count++; types[4].platforms.push(c.name); }
-    else if (pm.includes("seat") && (pm.includes("resolution") || pm.includes("add-on"))) { types[2].count++; types[2].platforms.push(c.name); }
-    else if (pm.includes("resolution") && !pm.includes("seat")) { types[1].count++; types[1].platforms.push(c.name); }
-    else if (pm.includes("seat") && !pm.includes("resolution")) { types[0].count++; types[0].platforms.push(c.name); }
-    else if (pm.includes("freemium") || pm.includes("free")) { types[7].count++; types[7].platforms.push(c.name); }
-    else if (pm.includes("usage") || pm.includes("conversation") || pm.includes("contact") || pm.includes("ticket") || pm.includes("issue") || pm.includes("minute") || pm.includes("population")) { types[3].count++; types[3].platforms.push(c.name); }
-    else { types[5].count++; types[5].platforms.push(c.name); }
+    if (pm.includes("managed")) types[6].count++;
+    else if (pm.includes("outcome")) types[4].count++;
+    else if (pm.includes("seat") && (pm.includes("resolution") || pm.includes("add-on"))) types[2].count++;
+    else if (pm.includes("resolution") && !pm.includes("seat")) types[1].count++;
+    else if (pm.includes("seat") && !pm.includes("resolution")) types[0].count++;
+    else if (pm.includes("freemium") || pm.includes("free")) types[7].count++;
+    else if (pm.includes("usage") || pm.includes("conversation") || pm.includes("contact") || pm.includes("ticket") || pm.includes("issue") || pm.includes("minute") || pm.includes("population")) types[3].count++;
+    else types[5].count++;
   });
   const pieColors = [C.accent, C.purple, C.pink, C.cyan, C.success, C.warning, C.orange, C.lime];
-  const resData = competitors.filter(c => c.resolutionPrice).sort((a, b) => a.resolutionPrice - b.resolutionPrice).map(c => ({ name: c.name, price: c.resolutionPrice, category: c.category }));
+  const resData = data.filter(c => c.resolutionPrice).sort((a, b) => a.resolutionPrice - b.resolutionPrice).map(c => ({ name: c.name, price: c.resolutionPrice, category: c.category }));
 
   return (
     <div>
       <h3 style={{ color: C.text, margin: "0 0 4px", fontSize: 18, fontWeight: 700 }}>Pricing Model Distribution</h3>
-      <p style={{ color: C.textMuted, margin: "0 0 16px", fontSize: 13 }}>How the 35 platforms monetize — the shift from seat-based to usage/resolution pricing is the key AI tension.</p>
+      <p style={{ color: C.textMuted, margin: "0 0 16px", fontSize: 13 }}>Showing {data.length} platforms.</p>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
         <div>
           <ResponsiveContainer width="100%" height={340}>
@@ -221,24 +259,28 @@ function PricingModels() {
         </div>
         <div>
           <div style={{ color: C.text, fontWeight: 600, fontSize: 14, marginBottom: 12 }}>Per-Resolution Price Comparison</div>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={resData} margin={{ top: 5, right: 20, bottom: 5, left: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-              <XAxis dataKey="name" tick={{ fill: C.textMuted, fontSize: 10 }} angle={-35} textAnchor="end" height={70} />
-              <YAxis tick={{ fill: C.textMuted, fontSize: 11 }} tickFormatter={v => `$${v.toFixed(2)}`} domain={[0, "auto"]} />
-              <Tooltip formatter={v => [`$${v.toFixed(2)}`, "Per Resolution"]} contentStyle={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 12 }} />
-              <Bar dataKey="price" radius={[4, 4, 0, 0]}>
-                {resData.map((e, i) => <Cell key={i} fill={e.name === "Zendesk" ? C.danger : e.name === "Ada" ? C.orange : e.name === "Intercom" ? C.warning : C.success} />)}
-                <LabelList dataKey="price" position="top" formatter={v => `$${v.toFixed(2)}`} style={{ fill: C.text, fontSize: 11, fontWeight: 600 }} />
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          {resData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={resData} margin={{ top: 5, right: 20, bottom: 5, left: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                <XAxis dataKey="name" tick={{ fill: C.textMuted, fontSize: 10 }} angle={-35} textAnchor="end" height={70} />
+                <YAxis tick={{ fill: C.textMuted, fontSize: 11 }} tickFormatter={v => `$${v.toFixed(2)}`} domain={[0, "auto"]} />
+                <Tooltip formatter={v => [`$${v.toFixed(2)}`, "Per Resolution"]} contentStyle={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 12 }} />
+                <Bar dataKey="price" radius={[4, 4, 0, 0]}>
+                  {resData.map((e, i) => <Cell key={i} fill={e.name === "Zendesk" ? C.danger : e.name === "Ada" ? C.orange : e.name === "Intercom" ? C.warning : C.success} />)}
+                  <LabelList dataKey="price" position="top" formatter={v => `$${v.toFixed(2)}`} style={{ fill: C.text, fontSize: 11, fontWeight: 600 }} />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div style={{ color: C.textMuted, fontSize: 13, padding: 40, textAlign: "center" }}>No platforms with published per-resolution pricing in this selection.</div>
+          )}
         </div>
       </div>
       <div style={{ marginTop: 16, background: C.surfaceHover, borderRadius: 8, padding: "12px 16px" }}>
         <div style={{ color: C.warning, fontWeight: 600, fontSize: 13, marginBottom: 6 }}>Key Insight: The Seat vs. Resolution Tension</div>
         <div style={{ color: C.textMuted, fontSize: 12, lineHeight: 1.6 }}>
-          Zendesk&apos;s $1.50/resolution is 52% more expensive than Intercom&apos;s $0.99 and 3x Tidio&apos;s $0.50. The market is splitting: incumbents stack seat + resolution fees (Zendesk, Front), while AI-first players move to pure usage/outcome models (Sierra, Decagon). Botpress&apos;s transparent pricing undercuts both approaches.
+          Zendesk&apos;s $1.50/resolution is 52% more expensive than Intercom&apos;s $0.99 and 3x Tidio&apos;s $0.50. The market is splitting: incumbents stack seat + resolution fees, while AI-first players move to pure usage/outcome models. Botpress&apos;s transparent pricing undercuts both approaches.
         </div>
       </div>
     </div>
@@ -246,11 +288,11 @@ function PricingModels() {
 }
 
 // ── 4. AI MATURITY ──
-function AIMaturity() {
-  const sorted = [...competitors].sort((a, b) => b.aiScore - a.aiScore);
+function AIMaturity({ data }) {
+  const sorted = [...data].sort((a, b) => b.aiScore - a.aiScore);
   const getColor = (s) => s >= 9 ? "#7c3aed" : s >= 7 ? "#3b82f6" : s >= 5 ? "#06b6d4" : s >= 3 ? "#f59e0b" : "#6b7280";
   const postureGroups = {};
-  competitors.forEach(c => {
+  data.forEach(c => {
     if (!postureGroups[c.aiPosture]) postureGroups[c.aiPosture] = [];
     postureGroups[c.aiPosture].push(c.name);
   });
@@ -258,7 +300,7 @@ function AIMaturity() {
   return (
     <div>
       <h3 style={{ color: C.text, margin: "0 0 4px", fontSize: 18, fontWeight: 700 }}>AI Maturity Scorecard</h3>
-      <p style={{ color: C.textMuted, margin: "0 0 16px", fontSize: 13 }}>Scored 1-10 on AI capability depth: LLM sophistication, automation breadth, channel coverage, and architecture maturity.</p>
+      <p style={{ color: C.textMuted, margin: "0 0 16px", fontSize: 13 }}>Showing {data.length} platforms. Scored 1-10 on AI capability depth.</p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(155px, 1fr))", gap: 6 }}>
         {sorted.map(c => (
           <div key={c.name} style={{ background: C.surfaceHover, borderRadius: 8, padding: "10px 12px", borderLeft: `4px solid ${getColor(c.aiScore)}` }}>
@@ -270,87 +312,101 @@ function AIMaturity() {
           </div>
         ))}
       </div>
-      <div style={{ marginTop: 20 }}>
-        <div style={{ color: C.text, fontWeight: 600, fontSize: 14, marginBottom: 10 }}>AI Posture Breakdown</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 }}>
-          {Object.entries(postureGroups).map(([posture, names]) => (
-            <div key={posture} style={{ background: C.surfaceHover, borderRadius: 8, padding: "10px 14px", borderTop: `3px solid ${AI_COLORS[posture] || C.textMuted}` }}>
-              <div style={{ color: AI_COLORS[posture] || C.textMuted, fontWeight: 600, fontSize: 13 }}>{posture} ({names.length})</div>
-              <div style={{ color: C.textMuted, fontSize: 11, marginTop: 4, lineHeight: 1.5 }}>{names.join(", ")}</div>
-            </div>
-          ))}
+      {Object.keys(postureGroups).length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          <div style={{ color: C.text, fontWeight: 600, fontSize: 14, marginBottom: 10 }}>AI Posture Breakdown</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 }}>
+            {Object.entries(postureGroups).map(([posture, names]) => (
+              <div key={posture} style={{ background: C.surfaceHover, borderRadius: 8, padding: "10px 14px", borderTop: `3px solid ${AI_COLORS[posture] || C.textMuted}` }}>
+                <div style={{ color: AI_COLORS[posture] || C.textMuted, fontWeight: 600, fontSize: 13 }}>{posture} ({names.length})</div>
+                <div style={{ color: C.textMuted, fontSize: 11, marginTop: 4, lineHeight: 1.5 }}>{names.join(", ")}</div>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
 
 // ── 5. COMPETITIVE DYNAMICS ──
-function CompetitiveDynamics() {
-  const growthData = [
-    { name: "Sierra", signal: "Explosive", detail: "$0→$100M ARR in 7 quarters, $10B val", score: 10 },
-    { name: "Crescendo", signal: "Explosive", detail: "$0→$100M projected in <2 years", score: 10 },
-    { name: "Intercom", signal: "Strong", detail: "$400M ARR, Fin approaching $100M alone", score: 9 },
-    { name: "Pylon", signal: "Strong", detail: "5x+ YoY growth, 150 stolen from Zendesk", score: 8 },
-    { name: "Giga", signal: "Strong", detail: "DoorDash win, $65M Series A", score: 8 },
-    { name: "Maven AGI", signal: "Promising", detail: "$0→$7M Y1, 93% resolution claim", score: 7 },
-    { name: "Zendesk", signal: "Steady", detail: "$200M AI ARR, 20K AI customers", score: 7 },
-    { name: "Decagon", signal: "Promising", detail: "$100M raise, $1B+ val, top-tier logos", score: 7 },
-    { name: "Gladly", signal: "Recovering", detail: "+56% YoY to $48M, new $40M round", score: 6 },
-    { name: "Kustomer", signal: "Reinventing", detail: "Conversation pricing pivot, post-Meta rebuild", score: 5 },
-    { name: "Sprinklr", signal: "Declining", detail: "9% growth (was 18%), class action, leadership churn", score: 3 },
-    { name: "Helpshift", signal: "Niche-locked", detail: "Gaming-only under Keywords Studios", score: 2 },
+function CompetitiveDynamics({ data }) {
+  const allGrowth = [
+    { name: "Sierra", signal: "Explosive", detail: "$0\u2192$100M ARR in 7 quarters, $10B val", score: 10, category: "AI-First" },
+    { name: "Crescendo", signal: "Explosive", detail: "$0\u2192$100M projected in <2 years", score: 10, category: "Managed Service" },
+    { name: "Intercom", signal: "Strong", detail: "$400M ARR, Fin approaching $100M alone", score: 9, category: "Large Incumbent" },
+    { name: "Pylon", signal: "Strong", detail: "5x+ YoY growth, 150 stolen from Zendesk", score: 8, category: "Up-and-Coming" },
+    { name: "Giga", signal: "Strong", detail: "DoorDash win, $65M Series A", score: 8, category: "AI-First" },
+    { name: "Maven AGI", signal: "Promising", detail: "$0\u2192$7M Y1, 93% resolution claim", score: 7, category: "AI-First" },
+    { name: "Zendesk", signal: "Steady", detail: "$200M AI ARR, 20K AI customers", score: 7, category: "Large Incumbent" },
+    { name: "Decagon", signal: "Promising", detail: "$100M raise, $1B+ val, top-tier logos", score: 7, category: "AI-First" },
+    { name: "Gladly", signal: "Recovering", detail: "+56% YoY to $48M, new $40M round", score: 6, category: "Specialist" },
+    { name: "Kustomer", signal: "Reinventing", detail: "Conversation pricing pivot, post-Meta rebuild", score: 5, category: "Up-and-Coming" },
+    { name: "Sprinklr", signal: "Declining", detail: "9% growth (was 18%), class action, churn", score: 3, category: "Up-and-Coming" },
+    { name: "Helpshift", signal: "Niche-locked", detail: "Gaming-only under Keywords Studios", score: 2, category: "Specialist" },
   ];
+  const names = new Set(data.map(c => c.name));
+  const growthData = allGrowth.filter(g => names.has(g.name));
   const flanking = [
-    { attacker: "Pylon", target: "Zendesk / Intercom", angle: "B2B-specific support (Slack/Teams native) — stealing 150+ customers directly" },
-    { attacker: "Gorgias", target: "Zendesk", angle: "Shopify-native vertical lock-in — cheaper, deeper e-commerce integration" },
-    { attacker: "Sierra", target: "Everyone", angle: "Fortune 1000 outcome-based AI — bypasses helpdesk entirely" },
+    { attacker: "Pylon", target: "Zendesk / Intercom", angle: "B2B-specific support (Slack/Teams native) \u2014 stealing 150+ customers directly" },
+    { attacker: "Gorgias", target: "Zendesk", angle: "Shopify-native vertical lock-in \u2014 cheaper, deeper e-commerce integration" },
+    { attacker: "Sierra", target: "Everyone", angle: "Fortune 1000 outcome-based AI \u2014 bypasses helpdesk entirely" },
     { attacker: "Crescendo", target: "BPOs + platforms", angle: "Managed AI service replaces both software AND staffing" },
     { attacker: "Kustomer", target: "Zendesk / Intercom", angle: "Conversation-based pricing eliminates per-seat + per-resolution stacking" },
-    { attacker: "Help Scout", target: "Zendesk (SMB)", angle: "Contacts-based pricing with unlimited seats — anti-Zendesk pricing" },
-  ];
+    { attacker: "Help Scout", target: "Zendesk (SMB)", angle: "Contacts-based pricing with unlimited seats \u2014 anti-Zendesk pricing" },
+  ].filter(f => names.has(f.attacker));
 
   return (
     <div>
       <h3 style={{ color: C.text, margin: "0 0 4px", fontSize: 18, fontWeight: 700 }}>Competitive Dynamics & Growth Trajectories</h3>
-      <p style={{ color: C.textMuted, margin: "0 0 16px", fontSize: 13 }}>Who&apos;s gaining momentum, who&apos;s flanking whom, and where consolidation risks exist.</p>
-      <div style={{ color: C.text, fontWeight: 600, fontSize: 14, marginBottom: 10 }}>Growth Momentum</div>
-      <ResponsiveContainer width="100%" height={320}>
-        <BarChart data={growthData} layout="vertical" margin={{ top: 5, right: 40, bottom: 5, left: 90 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke={C.border} horizontal={false} />
-          <XAxis type="number" domain={[0, 10]} tick={{ fill: C.textMuted, fontSize: 11 }} />
-          <YAxis type="category" dataKey="name" tick={{ fill: C.text, fontSize: 12 }} width={80} />
-          <Tooltip content={({ active, payload }) => {
-            if (!active || !payload?.length) return null;
-            const d = payload[0]?.payload;
-            return (
-              <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px" }}>
-                <div style={{ fontWeight: 700, color: C.text }}>{d.name}</div>
-                <div style={{ color: C.accent, fontSize: 12, marginTop: 2 }}>{d.signal}</div>
-                <div style={{ color: C.textMuted, fontSize: 12, marginTop: 2 }}>{d.detail}</div>
+      <p style={{ color: C.textMuted, margin: "0 0 16px", fontSize: 13 }}>Showing {growthData.length} platforms with growth signals.</p>
+      {growthData.length > 0 ? (
+        <>
+          <div style={{ color: C.text, fontWeight: 600, fontSize: 14, marginBottom: 10 }}>Growth Momentum</div>
+          <ResponsiveContainer width="100%" height={Math.max(growthData.length * 35, 120)}>
+            <BarChart data={growthData} layout="vertical" margin={{ top: 5, right: 40, bottom: 5, left: 90 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={C.border} horizontal={false} />
+              <XAxis type="number" domain={[0, 10]} tick={{ fill: C.textMuted, fontSize: 11 }} />
+              <YAxis type="category" dataKey="name" tick={{ fill: C.text, fontSize: 12 }} width={80} />
+              <Tooltip content={({ active, payload }) => {
+                if (!active || !payload?.length) return null;
+                const d = payload[0]?.payload;
+                return (
+                  <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px" }}>
+                    <div style={{ fontWeight: 700, color: C.text }}>{d.name}</div>
+                    <div style={{ color: C.accent, fontSize: 12, marginTop: 2 }}>{d.signal}</div>
+                    <div style={{ color: C.textMuted, fontSize: 12, marginTop: 2 }}>{d.detail}</div>
+                  </div>
+                );
+              }} />
+              <Bar dataKey="score" radius={[0, 4, 4, 0]}>
+                {growthData.map((e, i) => <Cell key={i} fill={e.score >= 8 ? C.success : e.score >= 5 ? C.warning : C.danger} fillOpacity={0.85} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </>
+      ) : (
+        <div style={{ color: C.textMuted, fontSize: 13, padding: 40, textAlign: "center" }}>No growth data for selected categories.</div>
+      )}
+      {flanking.length > 0 && (
+        <>
+          <div style={{ color: C.text, fontWeight: 600, fontSize: 14, marginBottom: 10, marginTop: 20 }}>Flanking Moves</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {flanking.map((f, i) => (
+              <div key={i} style={{ background: C.surfaceHover, borderRadius: 8, padding: "10px 14px", display: "grid", gridTemplateColumns: "100px 16px 140px 1fr", alignItems: "center", gap: 8 }}>
+                <span style={{ color: C.success, fontWeight: 700, fontSize: 13 }}>{f.attacker}</span>
+                <span style={{ color: C.textMuted }}>\u2192</span>
+                <span style={{ color: C.danger, fontWeight: 600, fontSize: 13 }}>{f.target}</span>
+                <span style={{ color: C.textMuted, fontSize: 12 }}>{f.angle}</span>
               </div>
-            );
-          }} />
-          <Bar dataKey="score" radius={[0, 4, 4, 0]}>
-            {growthData.map((e, i) => <Cell key={i} fill={e.score >= 8 ? C.success : e.score >= 5 ? C.warning : C.danger} fillOpacity={0.85} />)}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-      <div style={{ color: C.text, fontWeight: 600, fontSize: 14, marginBottom: 10, marginTop: 20 }}>Flanking Moves</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {flanking.map((f, i) => (
-          <div key={i} style={{ background: C.surfaceHover, borderRadius: 8, padding: "10px 14px", display: "grid", gridTemplateColumns: "100px 16px 140px 1fr", alignItems: "center", gap: 8 }}>
-            <span style={{ color: C.success, fontWeight: 700, fontSize: 13 }}>{f.attacker}</span>
-            <span style={{ color: C.textMuted }}>→</span>
-            <span style={{ color: C.danger, fontWeight: 600, fontSize: 13 }}>{f.target}</span>
-            <span style={{ color: C.textMuted, fontSize: 12 }}>{f.angle}</span>
+            ))}
           </div>
-        ))}
-      </div>
+        </>
+      )}
       <div style={{ marginTop: 20, background: C.surfaceHover, borderRadius: 8, padding: "14px 16px", borderLeft: `3px solid ${C.danger}` }}>
         <div style={{ color: C.danger, fontWeight: 600, fontSize: 13, marginBottom: 6 }}>Consolidation Watch</div>
         <div style={{ color: C.textMuted, fontSize: 12, lineHeight: 1.6 }}>
-          Cognigy acquired by NICE ($955M) · Kustomer spun off from Meta ($250M) · Helpshift acquired by Keywords Studios ($75M) · Zendesk planning 2+ more acquisitions in 2026 · PE-backed Zendesk targeting IPO/sale within 3-5 years · Sprinklr market cap collapsed from $7B to $1.5B — acquisition target
+          Cognigy acquired by NICE ($955M) \u00b7 Kustomer spun off from Meta ($250M) \u00b7 Helpshift acquired by Keywords Studios ($75M) \u00b7 Zendesk planning 2+ more acquisitions in 2026 \u00b7 PE-backed Zendesk targeting IPO/sale within 3-5 years \u00b7 Sprinklr market cap collapsed from $7B to $1.5B
         </div>
       </div>
     </div>
@@ -360,14 +416,30 @@ function CompetitiveDynamics() {
 // ── MAIN DASHBOARD ──
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("matrix");
+  const [selectedCats, setSelectedCats] = useState([...ALL_CATEGORIES]);
+
+  const handleToggle = (cat) => {
+    if (cat === "ALL") {
+      setSelectedCats(selectedCats.length === ALL_CATEGORIES.length ? [] : [...ALL_CATEGORIES]);
+      return;
+    }
+    setSelectedCats(prev =>
+      prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
+    );
+  };
+
+  const filtered = useMemo(
+    () => competitors.filter(c => selectedCats.includes(c.category)),
+    [selectedCats]
+  );
 
   const renderTab = () => {
     switch (activeTab) {
-      case "matrix": return <PositioningMatrix />;
-      case "revenue": return <RevenueFunding />;
-      case "pricing": return <PricingModels />;
-      case "aiPosture": return <AIMaturity />;
-      case "dynamics": return <CompetitiveDynamics />;
+      case "matrix": return <PositioningMatrix data={filtered} />;
+      case "revenue": return <RevenueFunding data={filtered} />;
+      case "pricing": return <PricingModels data={filtered} />;
+      case "aiPosture": return <AIMaturity data={filtered} />;
+      case "dynamics": return <CompetitiveDynamics data={filtered} />;
       default: return null;
     }
   };
@@ -383,8 +455,13 @@ export default function Dashboard() {
         <h1 style={{ margin: "8px 0 0", fontSize: 26, fontWeight: 800, background: `linear-gradient(135deg, ${C.text}, ${C.accent})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
           AI Customer Service — Competitive Landscape
         </h1>
-        <p style={{ color: C.textMuted, fontSize: 13, margin: "6px 0 0" }}>35 platforms · Revenue, pricing, AI maturity, and competitive dynamics</p>
+        <p style={{ color: C.textMuted, fontSize: 13, margin: "6px 0 0" }}>
+          {filtered.length} of {competitors.length} platforms \u00b7 Revenue, pricing, AI maturity, and competitive dynamics
+        </p>
       </div>
+
+      {/* Category Filter */}
+      <CategoryFilter selected={selectedCats} onToggle={handleToggle} />
 
       {/* Tabs */}
       <div style={{ display: "flex", gap: 4, marginBottom: 24, background: C.surface, borderRadius: 10, padding: 4, border: `1px solid ${C.border}` }}>
@@ -402,12 +479,18 @@ export default function Dashboard() {
 
       {/* Content */}
       <div style={{ background: C.surface, borderRadius: 12, padding: "24px 28px", border: `1px solid ${C.border}` }}>
-        {renderTab()}
+        {filtered.length > 0 ? renderTab() : (
+          <div style={{ textAlign: "center", padding: 60, color: C.textMuted }}>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>&#128269;</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: C.text }}>No categories selected</div>
+            <div style={{ fontSize: 13, marginTop: 4 }}>Click a category above to see platforms</div>
+          </div>
+        )}
       </div>
 
       {/* Footer */}
       <div style={{ marginTop: 16, color: C.textMuted, fontSize: 11, textAlign: "center" }}>
-        Data sourced from company filings, Crunchbase, G2, Gartner, Latka, press releases · Estimates flagged where applicable · March 2026
+        Data sourced from company filings, Crunchbase, G2, Gartner, Latka, press releases \u00b7 Estimates flagged where applicable \u00b7 March 2026
       </div>
     </div>
   );

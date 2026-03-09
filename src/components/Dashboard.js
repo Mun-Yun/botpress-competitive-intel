@@ -239,11 +239,13 @@ function PositioningMatrix({ data }) {
   };
 
   const renderLabel = (props) => {
-    const { x, y, value, index } = props;
+    const { value, index, cx, cy, x, y, width, height } = props;
     const item = chartData[index];
     if (!item) return null;
+    const centerX = cx ?? (x + (width || 0) / 2);
+    const centerY = cy ?? (y + (height || 0) / 2);
     return (
-      <text x={x} y={y - 6} textAnchor="middle" fill={t.textMuted} fontSize={isZoomed ? 11 : 9} fontWeight={500} style={{ pointerEvents: "none" }}>
+      <text x={centerX} y={centerY - 12} textAnchor="middle" dominantBaseline="auto" fill={t.textMuted} fontSize={isZoomed ? 11 : 9} fontWeight={500} style={{ pointerEvents: "none" }}>
         {value}
       </text>
     );

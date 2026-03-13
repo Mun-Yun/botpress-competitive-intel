@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, createContext, useContext } from "react";
+import { useState, useMemo, useRef, createContext, useContext, useEffect } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   ScatterChart, Scatter, ZAxis, Cell, PieChart, Pie,
@@ -8,42 +8,52 @@ import {
 } from "recharts";
 import dynamic from "next/dynamic";
 
-// ── THEMES ──
-const DARK = {
-  bg: "#0a0f1a", surface: "#111827", surfaceHover: "#1a2236",
-  border: "#1e293b", text: "#e2e8f0", textMuted: "#94a3b8",
-  accent: "#3b82f6", accentLight: "#60a5fa", danger: "#ef4444",
-  warning: "#f59e0b", success: "#10b981", purple: "#8b5cf6",
-  pink: "#ec4899", cyan: "#06b6d4", orange: "#f97316", lime: "#84cc16",
+// ── THEME ──
+const THEME = {
+  bg: "#0a0a0a",
+  bgAlt: "#1a1a1a",
+  surface: "rgba(20, 20, 20, 0.75)",
+  surfaceSolid: "#141414",
+  surfaceHover: "rgba(30, 30, 30, 0.8)",
+  border: "rgba(255, 255, 255, 0.12)",
+  borderSubtle: "rgba(255, 255, 255, 0.06)",
+  text: "rgba(255, 255, 255, 0.9)",
+  textMuted: "rgba(255, 255, 255, 0.5)",
+  textFaint: "rgba(255, 255, 255, 0.25)",
+  accent: "#e63926",
+  accentGreen: "#4ade80",
+  purple: "#a78bfa",
+  pink: "#f472b6",
+  cyan: "#67e8f9",
+  warning: "#fbbf24",
+  orange: "#fb923c",
+  lime: "#a3e635",
+  success: "#4ade80",
+  danger: "#e63926",
+  fontMono: "'Space Mono', monospace",
+  fontBody: "'Space Grotesk', sans-serif",
+  fontDisplay: "'Playfair Display', serif",
 };
 
-const LIGHT = {
-  bg: "#f8fafc", surface: "#ffffff", surfaceHover: "#f1f5f9",
-  border: "#d1d5db", text: "#1e293b", textMuted: "#64748b",
-  accent: "#3b82f6", accentLight: "#2563eb", danger: "#ef4444",
-  warning: "#f59e0b", success: "#10b981", purple: "#8b5cf6",
-  pink: "#ec4899", cyan: "#06b6d4", orange: "#f97316", lime: "#84cc16",
-};
-
-const ThemeContext = createContext(DARK);
+const ThemeContext = createContext(THEME);
 function useTheme() { return useContext(ThemeContext); }
 
 const CAT_COLORS = {
-  "Large Incumbent": "#3b82f6",
-  "AI-First": "#8b5cf6",
-  "Specialist": "#f59e0b",
-  "Up-and-Coming": "#10b981",
-  "CCaaS / Contact Center": "#ec4899",
-  "Managed Service": "#06b6d4",
+  "Large Incumbent": "#6b8acd",
+  "AI-First": "#a78bfa",
+  "Specialist": "#d4a853",
+  "Up-and-Coming": "#4ade80",
+  "CCaaS / Contact Center": "#f472b6",
+  "Managed Service": "#67e8f9",
 };
 
 const ALL_CATEGORIES = Object.keys(CAT_COLORS);
 
 const AI_COLORS = {
-  "AI-First": "#8b5cf6",
-  "AI-Forward": "#a78bfa",
-  "Leaning into AI": "#f59e0b",
-  "Hybrid": "#06b6d4",
+  "AI-First": "#a78bfa",
+  "AI-Forward": "#c4b5fd",
+  "Leaning into AI": "#fbbf24",
+  "Hybrid": "#67e8f9",
 };
 
 // ── CITY COORDINATES ──
@@ -54,7 +64,7 @@ const CITY_COORDS = {
   "Redmond, USA": { lat: 47.6740, lng: -122.1215 },
   "Cambridge, USA": { lat: 42.3736, lng: -71.1097 },
   "Chennai, India": { lat: 13.0827, lng: 80.2707 },
-  "D\u00fcsseldorf, Germany": { lat: 51.2277, lng: 6.7735 },
+  "Düsseldorf, Germany": { lat: 51.2277, lng: 6.7735 },
   "Menlo Park, USA": { lat: 37.4530, lng: -122.1817 },
   "Armonk, USA": { lat: 41.1265, lng: -73.7140 },
   "San Ramon, USA": { lat: 37.7799, lng: -121.9780 },
@@ -70,6 +80,17 @@ const CITY_COORDS = {
   "Keller, USA": { lat: 32.9346, lng: -97.2295 },
 };
 
+// ── BACKGROUND IMAGES ──
+const BG_IMAGES = {
+  hero: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80",
+  dynamics: "https://images.unsplash.com/photo-1509114397022-ed747cca3f65?w=1920&q=80",
+  matrix: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1920&q=80",
+  revenue: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1920&q=80",
+  pricing: "https://images.unsplash.com/photo-1507400492013-162706c8c05e?w=1920&q=80",
+  aiPosture: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=1920&q=80",
+  hqMap: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1920&q=80",
+};
+
 // ── DATA ──
 const competitors = [
   { name: "Zendesk", category: "Large Incumbent", hq: "San Francisco, USA", revenue: 1950, revenueLabel: "$1.9B+ (est.)", aiPosture: "Leaning into AI", pricingModel: "Seat + Resolution + Add-ons", resolutionPrice: 1.5, seatPrice: 115, fundingOrVal: "$10.2B (PE buyout)", founded: 2007, automationRate: "Up to 80% (unverified)", customers: 100000, aiScore: 7, marketBreadth: 10, automationDepth: 7 },
@@ -83,7 +104,7 @@ const competitors = [
   { name: "Decagon", category: "AI-First", hq: "San Francisco, USA", revenue: 50, revenueLabel: "~$50M+ (est.)", aiPosture: "AI-First", pricingModel: "Per-conversation / resolution", resolutionPrice: null, seatPrice: null, fundingOrVal: "$100M / $1B+ val", founded: 2023, automationRate: "N/A", customers: null, aiScore: 10, marketBreadth: 4, automationDepth: 9 },
   { name: "Ada", category: "AI-First", hq: "Toronto, Canada", revenue: 70, revenueLabel: "$70.6M rev", aiPosture: "AI-First", pricingModel: "Per-resolution", resolutionPrice: 2.25, seatPrice: null, fundingOrVal: "$200M / $1.2B val", founded: 2016, automationRate: "70% (claimed)", customers: null, aiScore: 9, marketBreadth: 6, automationDepth: 9 },
   { name: "Forethought", category: "AI-First", hq: "San Francisco, USA", revenue: 30, revenueLabel: "~$30M (est.)", aiPosture: "AI-First", pricingModel: "Usage-based", resolutionPrice: null, seatPrice: null, fundingOrVal: "$115M+ raised", founded: 2018, automationRate: "N/A", customers: null, aiScore: 8, marketBreadth: 5, automationDepth: 8 },
-  { name: "Cognigy (NICE)", category: "AI-First", hq: "D\u00fcsseldorf, Germany", revenue: 40, revenueLabel: "~$40M (pre-acq est.)", aiPosture: "AI-First", pricingModel: "Enterprise subscription", resolutionPrice: null, seatPrice: null, fundingOrVal: "Acquired $955M", founded: 2016, automationRate: "N/A", customers: null, aiScore: 9, marketBreadth: 6, automationDepth: 8 },
+  { name: "Cognigy (NICE)", category: "AI-First", hq: "Düsseldorf, Germany", revenue: 40, revenueLabel: "~$40M (pre-acq est.)", aiPosture: "AI-First", pricingModel: "Enterprise subscription", resolutionPrice: null, seatPrice: null, fundingOrVal: "Acquired $955M", founded: 2016, automationRate: "N/A", customers: null, aiScore: 9, marketBreadth: 6, automationDepth: 8 },
   { name: "Maven AGI", category: "AI-First", hq: "Boston, USA", revenue: 7, revenueLabel: "~$7M rev", aiPosture: "AI-First", pricingModel: "Enterprise custom", resolutionPrice: null, seatPrice: null, fundingOrVal: "$78M raised", founded: 2023, automationRate: "93% claimed", customers: 40, aiScore: 9, marketBreadth: 3, automationDepth: 9 },
   { name: "Crescendo AI", category: "Managed Service", hq: "San Francisco, USA", revenue: 100, revenueLabel: "$100M+ ARR (projected)", aiPosture: "AI-First", pricingModel: "Managed service", resolutionPrice: null, seatPrice: null, fundingOrVal: "$50M / $500M val", founded: 2024, automationRate: "N/A", customers: null, aiScore: 8, marketBreadth: 4, automationDepth: 8 },
   { name: "Gorgias", category: "Specialist", hq: "San Francisco, USA", revenue: 71, revenueLabel: "$69-73M ARR", aiPosture: "Hybrid", pricingModel: "Ticket + Resolution", resolutionPrice: 0.90, seatPrice: null, fundingOrVal: "$96M raised", founded: 2015, automationRate: "N/A", customers: 15000, aiScore: 6, marketBreadth: 3, automationDepth: 7 },
@@ -111,13 +132,38 @@ const competitors = [
 
 // ── TABS ──
 const TABS = [
-  { id: "dynamics", label: "Competitive Dynamics" },
-  { id: "matrix", label: "Positioning Matrix" },
-  { id: "revenue", label: "Revenue & Funding" },
-  { id: "pricing", label: "Pricing Models" },
+  { id: "dynamics", label: "Dynamics" },
+  { id: "matrix", label: "Positioning" },
+  { id: "revenue", label: "Revenue" },
+  { id: "pricing", label: "Pricing" },
   { id: "aiPosture", label: "AI Maturity" },
   { id: "hqMap", label: "HQ Map" },
 ];
+
+// ── SHARED STYLES ──
+const GLASS = {
+  background: "rgba(20, 20, 20, 0.75)",
+  backdropFilter: "blur(20px)",
+  WebkitBackdropFilter: "blur(20px)",
+  border: "1px solid rgba(255, 255, 255, 0.12)",
+  borderRadius: 4,
+};
+
+const SECTION_LABEL = (t) => ({
+  fontFamily: t.fontMono, fontSize: 10, textTransform: "uppercase",
+  letterSpacing: "0.2em", color: t.accent, marginBottom: 8,
+});
+
+const SECTION_HEADING = (t) => ({
+  fontFamily: t.fontDisplay, fontSize: 30, fontWeight: 400,
+  color: t.text, margin: "0 0 8px", lineHeight: 1.2,
+});
+
+const BODY_TEXT = (t) => ({
+  fontFamily: t.fontBody, fontSize: 13, color: t.textMuted, lineHeight: 1.7,
+});
+
+const DIVIDER = { borderTop: "1px solid rgba(255, 255, 255, 0.08)", margin: "24px 0" };
 
 // ── TOOLTIP ──
 function TT({ active, payload }) {
@@ -126,12 +172,12 @@ function TT({ active, payload }) {
   const d = payload[0]?.payload;
   if (!d) return null;
   return (
-    <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 8, padding: "12px 16px", maxWidth: 280, zIndex: 50 }}>
-      <div style={{ fontWeight: 700, color: t.text, fontSize: 14 }}>{d.name}</div>
-      <div style={{ color: t.textMuted, fontSize: 12, marginTop: 2 }}>{d.category} · {d.hq}</div>
-      {d.revenueLabel && <div style={{ color: t.accent, fontSize: 12, marginTop: 6 }}>Revenue: {d.revenueLabel}</div>}
-      {d.aiPosture && <div style={{ color: AI_COLORS[d.aiPosture] || t.textMuted, fontSize: 12 }}>AI: {d.aiPosture}</div>}
-      {d.pricingModel && <div style={{ color: t.textMuted, fontSize: 12 }}>Pricing: {d.pricingModel}</div>}
+    <div style={{ ...GLASS, padding: "14px 18px", maxWidth: 280, zIndex: 50 }}>
+      <div style={{ fontWeight: 700, color: t.text, fontSize: 14, fontFamily: t.fontBody }}>{d.name}</div>
+      <div style={{ color: t.textMuted, fontSize: 11, marginTop: 3, fontFamily: t.fontMono, textTransform: "uppercase", letterSpacing: "0.1em" }}>{d.category} · {d.hq}</div>
+      {d.revenueLabel && <div style={{ color: t.accent, fontSize: 12, marginTop: 8, fontFamily: t.fontBody }}>Revenue: {d.revenueLabel}</div>}
+      {d.aiPosture && <div style={{ color: AI_COLORS[d.aiPosture] || t.textMuted, fontSize: 12, fontFamily: t.fontBody }}>AI: {d.aiPosture}</div>}
+      {d.pricingModel && <div style={{ color: t.textMuted, fontSize: 12, fontFamily: t.fontBody }}>Pricing: {d.pricingModel}</div>}
     </div>
   );
 }
@@ -141,42 +187,32 @@ function CategoryFilter({ selected, onToggle }) {
   const t = useTheme();
   const allSelected = selected.length === ALL_CATEGORIES.length;
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 20 }}>
+    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 20 }}>
       <button
         onClick={() => onToggle("ALL")}
         style={{
-          background: allSelected ? t.accent : "transparent",
-          color: allSelected ? "#fff" : t.textMuted,
-          border: `1px solid ${allSelected ? t.accent : t.border}`,
-          borderRadius: 20, padding: "5px 14px",
-          fontSize: 12, fontWeight: 600, cursor: "pointer",
-          transition: "all 0.15s",
+          background: "transparent", border: "none", cursor: "pointer", padding: 0,
+          fontFamily: t.fontMono, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.15em",
+          color: allSelected ? t.text : t.textFaint, transition: "color 0.2s",
         }}
       >
+        {allSelected && <span style={{ color: t.accent, marginRight: 6 }}>{"\u25AA"}</span>}
         All ({competitors.length})
       </button>
       {ALL_CATEGORIES.map(cat => {
-        const active = selected.includes(cat);
+        const active = selected.includes(cat) && !allSelected;
         const count = competitors.filter(c => c.category === cat).length;
         return (
           <button
             key={cat}
             onClick={() => onToggle(cat)}
             style={{
-              background: active ? CAT_COLORS[cat] + "22" : "transparent",
-              color: active ? CAT_COLORS[cat] : t.textMuted,
-              border: `1px solid ${active ? CAT_COLORS[cat] : t.border}`,
-              borderRadius: 20, padding: "5px 14px",
-              fontSize: 12, fontWeight: 600, cursor: "pointer",
-              transition: "all 0.15s",
-              display: "flex", alignItems: "center", gap: 6,
+              background: "transparent", border: "none", cursor: "pointer", padding: 0,
+              fontFamily: t.fontMono, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.12em",
+              color: active ? CAT_COLORS[cat] : t.textFaint, transition: "color 0.2s",
             }}
           >
-            <div style={{
-              width: 8, height: 8, borderRadius: "50%",
-              background: active ? CAT_COLORS[cat] : t.border,
-              transition: "all 0.15s",
-            }} />
+            {active && <span style={{ color: t.accent, marginRight: 6 }}>{"\u25AA"}</span>}
             {cat} ({count})
           </button>
         );
@@ -209,7 +245,7 @@ function applyJitter(data) {
   return result;
 }
 
-// ── 1. POSITIONING MATRIX (with zoom) ──
+// ── 1. POSITIONING MATRIX ──
 const CHART_MARGIN = { top: 20, right: 40, bottom: 40, left: 50 };
 
 function PositioningMatrix({ data }) {
@@ -224,7 +260,6 @@ function PositioningMatrix({ data }) {
     z: Math.max(Math.log10(c.revenue || 10) * 120, 80),
   }));
   const chartData = applyJitter(rawData);
-
   const isZoomed = zoom.x[0] !== 0 || zoom.x[1] !== 11 || zoom.y[0] !== 0 || zoom.y[1] !== 11;
 
   const pixelToDomain = (clientX, clientY) => {
@@ -240,28 +275,15 @@ function PositioningMatrix({ data }) {
     };
   };
 
-  const handleMouseDown = (e) => {
-    if (e.button !== 0) return;
-    const pt = pixelToDomain(e.clientX, e.clientY);
-    if (pt) { setDragStart(pt); setDragEnd(null); }
-  };
-  const handleMouseMove = (e) => {
-    if (!dragStart) return;
-    const pt = pixelToDomain(e.clientX, e.clientY);
-    if (pt) setDragEnd(pt);
-  };
+  const handleMouseDown = (e) => { if (e.button !== 0) return; const pt = pixelToDomain(e.clientX, e.clientY); if (pt) { setDragStart(pt); setDragEnd(null); } };
+  const handleMouseMove = (e) => { if (!dragStart) return; const pt = pixelToDomain(e.clientX, e.clientY); if (pt) setDragEnd(pt); };
   const handleMouseUp = () => {
     if (dragStart && dragEnd) {
-      const x1 = Math.min(dragStart.x, dragEnd.x);
-      const x2 = Math.max(dragStart.x, dragEnd.x);
-      const y1 = Math.min(dragStart.y, dragEnd.y);
-      const y2 = Math.max(dragStart.y, dragEnd.y);
-      if (x2 - x1 > 0.3 && y2 - y1 > 0.3) {
-        setZoom({ x: [Math.max(0, x1), Math.min(11, x2)], y: [Math.max(0, y1), Math.min(11, y2)] });
-      }
+      const x1 = Math.min(dragStart.x, dragEnd.x), x2 = Math.max(dragStart.x, dragEnd.x);
+      const y1 = Math.min(dragStart.y, dragEnd.y), y2 = Math.max(dragStart.y, dragEnd.y);
+      if (x2 - x1 > 0.3 && y2 - y1 > 0.3) setZoom({ x: [Math.max(0, x1), Math.min(11, x2)], y: [Math.max(0, y1), Math.min(11, y2)] });
     }
-    setDragStart(null);
-    setDragEnd(null);
+    setDragStart(null); setDragEnd(null);
   };
 
   const handleWheel = (e) => {
@@ -269,26 +291,14 @@ function PositioningMatrix({ data }) {
     e.preventDefault();
     const pt = pixelToDomain(e.clientX, e.clientY);
     if (!pt) return;
-    const factor = e.deltaY < 0 ? 0.8 : 1.25; // scroll up = zoom in, down = zoom out
-    const xRange = zoom.x[1] - zoom.x[0];
-    const yRange = zoom.y[1] - zoom.y[0];
-    const newXRange = Math.min(11, xRange * factor);
-    const newYRange = Math.min(11, yRange * factor);
-    // If zooming out beyond full range, reset
-    if (newXRange >= 11 && newYRange >= 11) {
-      setZoom({ x: [0, 11], y: [0, 11] });
-      return;
-    }
-    // Zoom centered on cursor position
-    const xRatio = (pt.x - zoom.x[0]) / xRange;
-    const yRatio = (pt.y - zoom.y[0]) / yRange;
-    const newX0 = pt.x - xRatio * newXRange;
-    const newX1 = pt.x + (1 - xRatio) * newXRange;
-    const newY0 = pt.y - yRatio * newYRange;
-    const newY1 = pt.y + (1 - yRatio) * newYRange;
+    const factor = e.deltaY < 0 ? 0.8 : 1.25;
+    const xRange = zoom.x[1] - zoom.x[0], yRange = zoom.y[1] - zoom.y[0];
+    const newXRange = Math.min(11, xRange * factor), newYRange = Math.min(11, yRange * factor);
+    if (newXRange >= 11 && newYRange >= 11) { setZoom({ x: [0, 11], y: [0, 11] }); return; }
+    const xRatio = (pt.x - zoom.x[0]) / xRange, yRatio = (pt.y - zoom.y[0]) / yRange;
     setZoom({
-      x: [Math.max(0, newX0), Math.min(11, newX1)],
-      y: [Math.max(0, newY0), Math.min(11, newY1)],
+      x: [Math.max(0, pt.x - xRatio * newXRange), Math.min(11, pt.x + (1 - xRatio) * newXRange)],
+      y: [Math.max(0, pt.y - yRatio * newYRange), Math.min(11, pt.y + (1 - yRatio) * newYRange)],
     });
   };
 
@@ -299,7 +309,7 @@ function PositioningMatrix({ data }) {
     const centerX = cx ?? (x + (width || 0) / 2);
     const centerY = cy ?? (y + (height || 0) / 2);
     return (
-      <text x={centerX} y={centerY - 12} textAnchor="middle" dominantBaseline="auto" fill={t.textMuted} fontSize={isZoomed ? 11 : 9} fontWeight={500} style={{ pointerEvents: "none" }}>
+      <text x={centerX} y={centerY - 12} textAnchor="middle" dominantBaseline="auto" fill="rgba(255,255,255,0.5)" fontSize={isZoomed ? 11 : 9} fontWeight={500} fontFamily="Space Mono, monospace" style={{ pointerEvents: "none" }}>
         {value}
       </text>
     );
@@ -307,67 +317,48 @@ function PositioningMatrix({ data }) {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+      <div style={SECTION_LABEL(t)}>{"\u25AA"} Positioning Matrix</div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
-          <h3 style={{ color: t.text, margin: 0, fontSize: 18, fontWeight: 700 }}>Automation Depth vs. Market Breadth</h3>
-          <p style={{ color: t.textMuted, margin: "4px 0 0", fontSize: 13 }}>
-            Bubble size = log revenue. Showing {data.length} platforms. {"\u2318"}+scroll to zoom, drag to select area.
-          </p>
+          <h3 style={SECTION_HEADING(t)}>Automation Depth vs. Market Breadth</h3>
+          <p style={BODY_TEXT(t)}>Bubble size = log revenue. {data.length} platforms. {"\u2318"}+scroll to zoom, drag to select.</p>
         </div>
         {isZoomed && (
-          <button
-            onClick={() => setZoom({ x: [0, 11], y: [0, 11] })}
-            style={{
-              background: t.accent, color: "#fff", border: "none", borderRadius: 6,
-              padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer",
-              whiteSpace: "nowrap",
-            }}
-          >
-            Reset Zoom
-          </button>
+          <button onClick={() => setZoom({ x: [0, 11], y: [0, 11] })} style={{
+            background: t.accent, color: "#fff", border: "none", borderRadius: 2,
+            padding: "6px 14px", fontSize: 10, fontFamily: t.fontMono, fontWeight: 700,
+            cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.1em",
+          }}>Reset</button>
         )}
       </div>
-      <div
-        ref={chartRef}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={() => { setDragStart(null); setDragEnd(null); }}
-        onWheel={handleWheel}
-        style={{ cursor: dragStart ? "crosshair" : "crosshair", userSelect: "none" }}
-      >
+      <div ref={chartRef} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={() => { setDragStart(null); setDragEnd(null); }} onWheel={handleWheel} style={{ cursor: "crosshair", userSelect: "none", marginTop: 16 }}>
         <ResponsiveContainer width="100%" height={560}>
           <ScatterChart margin={CHART_MARGIN}>
-            <CartesianGrid strokeDasharray="3 3" stroke={t.border} />
-            <XAxis type="number" dataKey="x" domain={zoom.x} tick={{ fill: t.textMuted, fontSize: 11 }} label={{ value: "Market Breadth \u2192", position: "bottom", offset: 15, fill: t.textMuted, fontSize: 12 }} allowDataOverflow />
-            <YAxis type="number" dataKey="y" domain={zoom.y} tick={{ fill: t.textMuted, fontSize: 11 }} label={{ value: "AI Automation Depth \u2192", angle: -90, position: "insideLeft", offset: -10, fill: t.textMuted, fontSize: 12 }} allowDataOverflow />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+            <XAxis type="number" dataKey="x" domain={zoom.x} tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 10, fontFamily: "Space Mono" }} label={{ value: "Market Breadth \u2192", position: "bottom", offset: 15, fill: "rgba(255,255,255,0.4)", fontSize: 10, fontFamily: "Space Mono" }} allowDataOverflow />
+            <YAxis type="number" dataKey="y" domain={zoom.y} tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 10, fontFamily: "Space Mono" }} label={{ value: "AI Automation Depth \u2192", angle: -90, position: "insideLeft", offset: -10, fill: "rgba(255,255,255,0.4)", fontSize: 10, fontFamily: "Space Mono" }} allowDataOverflow />
             <ZAxis type="number" dataKey="z" range={[40, 600]} />
             <Tooltip content={<TT />} />
             <Scatter data={chartData} isAnimationActive={false}>
-              {chartData.map((e, i) => <Cell key={i} fill={CAT_COLORS[e.category] || t.accent} fillOpacity={0.8} stroke={CAT_COLORS[e.category] || t.accent} strokeWidth={1} />)}
+              {chartData.map((e, i) => <Cell key={i} fill={CAT_COLORS[e.category] || t.accent} fillOpacity={0.75} stroke="rgba(255,255,255,0.15)" strokeWidth={1} />)}
               <LabelList dataKey="name" content={renderLabel} />
             </Scatter>
             {dragStart && dragEnd && (
-              <ReferenceArea
-                x1={dragStart.x} x2={dragEnd.x}
-                y1={dragStart.y} y2={dragEnd.y}
-                stroke={t.accent} strokeOpacity={0.6}
-                fill={t.accent} fillOpacity={0.1}
-              />
+              <ReferenceArea x1={dragStart.x} x2={dragEnd.x} y1={dragStart.y} y2={dragEnd.y} stroke={t.accent} strokeOpacity={0.6} fill={t.accent} fillOpacity={0.1} />
             )}
           </ScatterChart>
         </ResponsiveContainer>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 20 }}>
         {[
-          { label: "AI Leaders (High depth, Broad reach)", names: "Sierra, Intercom, Ada, Decagon", color: t.purple },
-          { label: "Incumbents (Broad reach, Lower AI)", names: "Zendesk, Salesforce, ServiceNow, Microsoft", color: t.accent },
-          { label: "AI Niche (High depth, Narrow)", names: "Parloa, Giga, Maven AGI, Nurix", color: t.pink },
-          { label: "Traditional Niche", names: "Help Scout, Tidio, Dixa, Pylon", color: t.warning },
+          { label: "AI Leaders", desc: "High depth, Broad reach", names: "Sierra, Intercom, Ada, Decagon", color: t.purple },
+          { label: "Incumbents", desc: "Broad reach, Lower AI", names: "Zendesk, Salesforce, ServiceNow, Microsoft", color: "#6b8acd" },
+          { label: "AI Niche", desc: "High depth, Narrow", names: "Parloa, Giga, Maven AGI, Nurix", color: t.pink },
+          { label: "Traditional Niche", desc: "Lower depth, Narrow", names: "Help Scout, Tidio, Dixa, Pylon", color: t.warning },
         ].map(q => (
-          <div key={q.label} style={{ background: t.surfaceHover, borderRadius: 8, padding: "10px 14px", borderLeft: `3px solid ${q.color}` }}>
-            <div style={{ color: q.color, fontSize: 12, fontWeight: 600 }}>{q.label}</div>
-            <div style={{ color: t.textMuted, fontSize: 11, marginTop: 2 }}>{q.names}</div>
+          <div key={q.label} style={{ borderTop: `1px solid ${q.color}`, paddingTop: 10 }}>
+            <div style={{ fontFamily: t.fontMono, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: q.color }}>{q.label}</div>
+            <div style={{ fontFamily: t.fontBody, color: t.textMuted, fontSize: 11, marginTop: 4 }}>{q.names}</div>
           </div>
         ))}
       </div>
@@ -381,28 +372,29 @@ function RevenueFunding({ data }) {
   const top = [...data].filter(c => c.revenue > 0).sort((a, b) => b.revenue - a.revenue).slice(0, 20);
   return (
     <div>
-      <h3 style={{ color: t.text, margin: "0 0 4px", fontSize: 18, fontWeight: 700 }}>Revenue / ARR Comparison</h3>
-      <p style={{ color: t.textMuted, margin: "0 0 16px", fontSize: 13 }}>Showing {top.length} platforms. Mix of public filings, reported ARR, and industry estimates.</p>
+      <div style={SECTION_LABEL(t)}>{"\u25AA"} Revenue & Funding</div>
+      <h3 style={SECTION_HEADING(t)}>Revenue / ARR Comparison</h3>
+      <p style={{ ...BODY_TEXT(t), marginBottom: 24 }}>{top.length} platforms. Mix of public filings, reported ARR, and industry estimates.</p>
       <ResponsiveContainer width="100%" height={Math.max(top.length * 32, 200)}>
         <BarChart data={top} layout="vertical" margin={{ top: 5, right: 50, bottom: 5, left: 120 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke={t.border} horizontal={false} />
-          <XAxis type="number" tick={{ fill: t.textMuted, fontSize: 11 }} tickFormatter={v => v >= 1000 ? `$${(v/1000).toFixed(1)}B` : `$${v}M`} />
-          <YAxis type="category" dataKey="name" tick={{ fill: t.text, fontSize: 12 }} width={110} />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" horizontal={false} />
+          <XAxis type="number" tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 10, fontFamily: "Space Mono" }} tickFormatter={v => v >= 1000 ? `$${(v/1000).toFixed(1)}B` : `$${v}M`} />
+          <YAxis type="category" dataKey="name" tick={{ fill: "rgba(255,255,255,0.9)", fontSize: 11, fontFamily: "Space Grotesk" }} width={110} />
           <Tooltip content={({ active, payload }) => {
             if (!active || !payload?.length) return null;
             const d = payload[0]?.payload;
             return (
-              <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 8, padding: "10px 14px" }}>
-                <div style={{ fontWeight: 700, color: t.text, fontSize: 14 }}>{d.name}</div>
-                <div style={{ color: t.accent, fontSize: 13, marginTop: 4 }}>{d.revenueLabel}</div>
-                <div style={{ color: t.textMuted, fontSize: 12 }}>{d.fundingOrVal}</div>
-                <div style={{ color: t.textMuted, fontSize: 11, marginTop: 4 }}>{d.category}</div>
+              <div style={{ ...GLASS, padding: "12px 16px" }}>
+                <div style={{ fontWeight: 700, color: t.text, fontSize: 14, fontFamily: t.fontBody }}>{d.name}</div>
+                <div style={{ color: t.accent, fontSize: 13, marginTop: 4, fontFamily: t.fontBody }}>{d.revenueLabel}</div>
+                <div style={{ color: t.textMuted, fontSize: 12, fontFamily: t.fontBody }}>{d.fundingOrVal}</div>
+                <div style={{ color: t.textFaint, fontSize: 10, marginTop: 4, fontFamily: t.fontMono, textTransform: "uppercase", letterSpacing: "0.1em" }}>{d.category}</div>
               </div>
             );
           }} />
-          <Bar dataKey="revenue" radius={[0, 4, 4, 0]}>
-            {top.map((e, i) => <Cell key={i} fill={CAT_COLORS[e.category] || t.accent} fillOpacity={0.85} />)}
-            <LabelList dataKey="revenueLabel" position="right" style={{ fill: t.textMuted, fontSize: 10 }} />
+          <Bar dataKey="revenue" radius={[0, 2, 2, 0]}>
+            {top.map((e, i) => <Cell key={i} fill={CAT_COLORS[e.category] || t.accent} fillOpacity={0.75} />)}
+            <LabelList dataKey="revenueLabel" position="right" style={{ fill: "rgba(255,255,255,0.5)", fontSize: 10, fontFamily: "Space Mono" }} />
           </Bar>
         </BarChart>
       </ResponsiveContainer>
@@ -430,47 +422,49 @@ function PricingModels({ data }) {
     else if (pm.includes("usage") || pm.includes("conversation") || pm.includes("contact") || pm.includes("ticket") || pm.includes("issue") || pm.includes("minute") || pm.includes("population")) types[3].count++;
     else types[5].count++;
   });
-  const pieColors = [t.accent, t.purple, t.pink, t.cyan, t.success, t.warning, t.orange, t.lime];
+  const pieColors = ["#6b8acd", "#a78bfa", "#f472b6", "#67e8f9", "#4ade80", "#fbbf24", "#fb923c", "#a3e635"];
   const resData = data.filter(c => c.resolutionPrice).sort((a, b) => a.resolutionPrice - b.resolutionPrice).map(c => ({ name: c.name, price: c.resolutionPrice, category: c.category }));
 
   return (
     <div>
-      <h3 style={{ color: t.text, margin: "0 0 4px", fontSize: 18, fontWeight: 700 }}>Pricing Model Distribution</h3>
-      <p style={{ color: t.textMuted, margin: "0 0 16px", fontSize: 13 }}>Showing {data.length} platforms.</p>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+      <div style={SECTION_LABEL(t)}>{"\u25AA"} Pricing Models</div>
+      <h3 style={SECTION_HEADING(t)}>Pricing Model Distribution</h3>
+      <p style={{ ...BODY_TEXT(t), marginBottom: 24 }}>{data.length} platforms.</p>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32 }}>
         <div>
           <ResponsiveContainer width="100%" height={340}>
             <PieChart>
-              <Pie data={types.filter(p => p.count > 0)} dataKey="count" nameKey="model" cx="50%" cy="50%" outerRadius={130} innerRadius={60} paddingAngle={2} label={({ model, count }) => `${model} (${count})`} labelLine={{ stroke: t.textMuted }} style={{ fontSize: 11 }}>
-                {types.filter(p => p.count > 0).map((_, i) => <Cell key={i} fill={pieColors[i % pieColors.length]} />)}
+              <Pie data={types.filter(p => p.count > 0)} dataKey="count" nameKey="model" cx="50%" cy="50%" outerRadius={130} innerRadius={70} paddingAngle={2} label={({ model, count }) => `${model} (${count})`} labelLine={{ stroke: "rgba(255,255,255,0.2)" }} style={{ fontSize: 10, fontFamily: "Space Mono" }}>
+                {types.filter(p => p.count > 0).map((_, i) => <Cell key={i} fill={pieColors[i % pieColors.length]} fillOpacity={0.75} />)}
               </Pie>
-              <Tooltip contentStyle={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 8, fontSize: 12, color: t.text }} itemStyle={{ color: t.text }} />
+              <Tooltip contentStyle={{ ...GLASS, fontSize: 12, color: t.text }} itemStyle={{ color: t.text }} />
             </PieChart>
           </ResponsiveContainer>
         </div>
         <div>
-          <div style={{ color: t.text, fontWeight: 600, fontSize: 14, marginBottom: 12 }}>Per-Resolution Price Comparison</div>
+          <div style={{ fontFamily: t.fontMono, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.15em", color: t.textMuted, marginBottom: 16 }}>{"\u25AA"} Per-Resolution Prices</div>
           {resData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={resData} margin={{ top: 5, right: 20, bottom: 5, left: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={t.border} />
-                <XAxis dataKey="name" tick={{ fill: t.textMuted, fontSize: 10 }} angle={-35} textAnchor="end" height={70} />
-                <YAxis tick={{ fill: t.textMuted, fontSize: 11 }} tickFormatter={v => `$${v.toFixed(2)}`} domain={[0, "auto"]} />
-                <Tooltip formatter={v => [`$${v.toFixed(2)}`, "Per Resolution"]} contentStyle={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 8, fontSize: 12, color: t.text }} itemStyle={{ color: t.text }} labelStyle={{ color: t.textMuted }} />
-                <Bar dataKey="price" radius={[4, 4, 0, 0]}>
-                  {resData.map((e, i) => <Cell key={i} fill={e.name === "Zendesk" ? t.danger : e.name === "Ada" ? t.orange : e.name === "Intercom" ? t.warning : t.success} />)}
-                  <LabelList dataKey="price" position="top" formatter={v => `$${v.toFixed(2)}`} style={{ fill: t.text, fontSize: 11, fontWeight: 600 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                <XAxis dataKey="name" tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 9, fontFamily: "Space Mono" }} angle={-35} textAnchor="end" height={70} />
+                <YAxis tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 10, fontFamily: "Space Mono" }} tickFormatter={v => `$${v.toFixed(2)}`} domain={[0, "auto"]} />
+                <Tooltip formatter={v => [`$${v.toFixed(2)}`, "Per Resolution"]} contentStyle={{ ...GLASS, fontSize: 12, color: t.text }} itemStyle={{ color: t.text }} labelStyle={{ color: t.textMuted }} />
+                <Bar dataKey="price" radius={[2, 2, 0, 0]}>
+                  {resData.map((e, i) => <Cell key={i} fill={e.name === "Zendesk" ? t.danger : e.name === "Ada" ? t.orange : e.name === "Intercom" ? t.warning : t.success} fillOpacity={0.75} />)}
+                  <LabelList dataKey="price" position="top" formatter={v => `$${v.toFixed(2)}`} style={{ fill: "rgba(255,255,255,0.9)", fontSize: 10, fontWeight: 600, fontFamily: "Space Mono" }} />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div style={{ color: t.textMuted, fontSize: 13, padding: 40, textAlign: "center" }}>No platforms with published per-resolution pricing in this selection.</div>
+            <div style={{ color: t.textMuted, fontSize: 13, padding: 40, textAlign: "center", fontFamily: t.fontBody }}>No platforms with published per-resolution pricing in this selection.</div>
           )}
         </div>
       </div>
-      <div style={{ marginTop: 16, background: t.surfaceHover, borderRadius: 8, padding: "12px 16px" }}>
-        <div style={{ color: t.warning, fontWeight: 600, fontSize: 13, marginBottom: 6 }}>Key Insight: The Seat vs. Resolution Tension</div>
-        <div style={{ color: t.textMuted, fontSize: 12, lineHeight: 1.6 }}>
+      <div style={{ ...GLASS, marginTop: 24, padding: "16px 20px", borderLeft: `2px solid ${t.accent}` }}>
+        <div style={{ ...SECTION_LABEL(t), marginBottom: 6 }}>{"\u25AA"} Key Insight</div>
+        <div style={{ fontFamily: t.fontBody, fontWeight: 600, color: t.text, fontSize: 14, marginBottom: 6 }}>The Seat vs. Resolution Tension</div>
+        <div style={BODY_TEXT(t)}>
           Zendesk&apos;s $1.50/resolution is 52% more expensive than Intercom&apos;s $0.99 and 3x Tidio&apos;s $0.50. The market is splitting: incumbents stack seat + resolution fees, while AI-first players move to pure usage/outcome models. Botpress&apos;s transparent pricing undercuts both approaches.
         </div>
       </div>
@@ -482,7 +476,7 @@ function PricingModels({ data }) {
 function AIMaturity({ data }) {
   const t = useTheme();
   const sorted = [...data].sort((a, b) => b.aiScore - a.aiScore);
-  const getColor = (s) => s >= 9 ? "#7c3aed" : s >= 7 ? "#3b82f6" : s >= 5 ? "#06b6d4" : s >= 3 ? "#f59e0b" : "#6b7280";
+  const getColor = (s) => s >= 9 ? "#a78bfa" : s >= 7 ? "#6b8acd" : s >= 5 ? "#67e8f9" : s >= 3 ? "#fbbf24" : "rgba(255,255,255,0.3)";
   const postureGroups = {};
   data.forEach(c => {
     if (!postureGroups[c.aiPosture]) postureGroups[c.aiPosture] = [];
@@ -491,31 +485,34 @@ function AIMaturity({ data }) {
 
   return (
     <div>
-      <h3 style={{ color: t.text, margin: "0 0 4px", fontSize: 18, fontWeight: 700 }}>AI Maturity Scorecard</h3>
-      <p style={{ color: t.textMuted, margin: "0 0 16px", fontSize: 13 }}>Showing {data.length} platforms. Scored 1-10 on AI capability depth.</p>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(155px, 1fr))", gap: 6 }}>
-        {sorted.map(c => (
-          <div key={c.name} style={{ background: t.surfaceHover, borderRadius: 8, padding: "10px 12px", borderLeft: `4px solid ${getColor(c.aiScore)}` }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ color: t.text, fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 100 }}>{c.name}</span>
-              <span style={{ color: "#fff", background: getColor(c.aiScore), borderRadius: 12, padding: "2px 8px", fontSize: 11, fontWeight: 700, minWidth: 28, textAlign: "center" }}>{c.aiScore}</span>
+      <div style={SECTION_LABEL(t)}>{"\u25AA"} AI Maturity</div>
+      <h3 style={SECTION_HEADING(t)}>AI Maturity Scorecard</h3>
+      <p style={{ ...BODY_TEXT(t), marginBottom: 24 }}>{data.length} platforms. Scored 1-10 on AI capability depth.</p>
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        {sorted.map((c, i) => (
+          <div key={c.name} style={{ display: "flex", alignItems: "center", gap: 16, padding: "12px 0", borderBottom: i < sorted.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none" }}>
+            <span style={{ fontFamily: t.fontDisplay, fontSize: 28, fontWeight: 400, color: getColor(c.aiScore), minWidth: 44, textAlign: "right" }}>{c.aiScore}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: t.fontBody, fontSize: 13, fontWeight: 600, color: t.text }}>{c.name}</div>
+              <div style={{ fontFamily: t.fontMono, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.1em", color: AI_COLORS[c.aiPosture] || t.textMuted, marginTop: 2 }}>{c.aiPosture}</div>
             </div>
-            <span style={{ color: AI_COLORS[c.aiPosture] || t.textMuted, fontSize: 10 }}>{c.aiPosture}</span>
+            <span style={{ fontFamily: t.fontMono, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.1em", color: t.textFaint }}>{c.category}</span>
           </div>
         ))}
       </div>
       {Object.keys(postureGroups).length > 0 && (
-        <div style={{ marginTop: 20 }}>
-          <div style={{ color: t.text, fontWeight: 600, fontSize: 14, marginBottom: 10 }}>AI Posture Breakdown</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 }}>
+        <>
+          <div style={DIVIDER} />
+          <div style={{ fontFamily: t.fontMono, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.15em", color: t.textMuted, marginBottom: 16 }}>{"\u25AA"} AI Posture Breakdown</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
             {Object.entries(postureGroups).map(([posture, names]) => (
-              <div key={posture} style={{ background: t.surfaceHover, borderRadius: 8, padding: "10px 14px", borderTop: `3px solid ${AI_COLORS[posture] || t.textMuted}` }}>
-                <div style={{ color: AI_COLORS[posture] || t.textMuted, fontWeight: 600, fontSize: 13 }}>{posture} ({names.length})</div>
-                <div style={{ color: t.textMuted, fontSize: 11, marginTop: 4, lineHeight: 1.5 }}>{names.join(", ")}</div>
+              <div key={posture} style={{ borderTop: `1px solid ${AI_COLORS[posture] || t.textFaint}`, paddingTop: 12 }}>
+                <div style={{ fontFamily: t.fontMono, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: AI_COLORS[posture] || t.textMuted, marginBottom: 4 }}>{posture} ({names.length})</div>
+                <div style={{ fontFamily: t.fontBody, color: t.textMuted, fontSize: 11, lineHeight: 1.6 }}>{names.join(", ")}</div>
               </div>
             ))}
           </div>
-        </div>
+        </>
       )}
     </div>
   );
@@ -551,54 +548,56 @@ function CompetitiveDynamics({ data }) {
 
   return (
     <div>
-      <h3 style={{ color: t.text, margin: "0 0 4px", fontSize: 18, fontWeight: 700 }}>Competitive Dynamics & Growth Trajectories</h3>
-      <p style={{ color: t.textMuted, margin: "0 0 16px", fontSize: 13 }}>Showing {growthData.length} platforms with growth signals.</p>
+      <div style={SECTION_LABEL(t)}>{"\u25AA"} Competitive Dynamics</div>
+      <h3 style={SECTION_HEADING(t)}>Growth Trajectories & Battle Lines</h3>
+      <p style={{ ...BODY_TEXT(t), marginBottom: 24 }}>{growthData.length} platforms with growth signals.</p>
       {growthData.length > 0 ? (
         <>
-          <div style={{ color: t.text, fontWeight: 600, fontSize: 14, marginBottom: 10 }}>Growth Momentum</div>
+          <div style={{ fontFamily: t.fontMono, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.15em", color: t.textMuted, marginBottom: 16 }}>{"\u25AA"} Growth Momentum</div>
           <ResponsiveContainer width="100%" height={Math.max(growthData.length * 35, 120)}>
             <BarChart data={growthData} layout="vertical" margin={{ top: 5, right: 40, bottom: 5, left: 90 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke={t.border} horizontal={false} />
-              <XAxis type="number" domain={[0, 10]} tick={{ fill: t.textMuted, fontSize: 11 }} />
-              <YAxis type="category" dataKey="name" tick={{ fill: t.text, fontSize: 12 }} width={80} />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" horizontal={false} />
+              <XAxis type="number" domain={[0, 10]} tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 10, fontFamily: "Space Mono" }} />
+              <YAxis type="category" dataKey="name" tick={{ fill: "rgba(255,255,255,0.9)", fontSize: 11, fontFamily: "Space Grotesk" }} width={80} />
               <Tooltip content={({ active, payload }) => {
                 if (!active || !payload?.length) return null;
                 const d = payload[0]?.payload;
                 return (
-                  <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 8, padding: "10px 14px" }}>
-                    <div style={{ fontWeight: 700, color: t.text }}>{d.name}</div>
-                    <div style={{ color: t.accent, fontSize: 12, marginTop: 2 }}>{d.signal}</div>
-                    <div style={{ color: t.textMuted, fontSize: 12, marginTop: 2 }}>{d.detail}</div>
+                  <div style={{ ...GLASS, padding: "12px 16px" }}>
+                    <div style={{ fontWeight: 700, color: t.text, fontFamily: t.fontBody }}>{d.name}</div>
+                    <div style={{ color: t.accent, fontSize: 12, marginTop: 2, fontFamily: t.fontMono, textTransform: "uppercase", letterSpacing: "0.1em" }}>{d.signal}</div>
+                    <div style={{ color: t.textMuted, fontSize: 12, marginTop: 2, fontFamily: t.fontBody }}>{d.detail}</div>
                   </div>
                 );
               }} />
-              <Bar dataKey="score" radius={[0, 4, 4, 0]}>
-                {growthData.map((e, i) => <Cell key={i} fill={e.score >= 8 ? t.success : e.score >= 5 ? t.warning : t.danger} fillOpacity={0.85} />)}
+              <Bar dataKey="score" radius={[0, 2, 2, 0]}>
+                {growthData.map((e, i) => <Cell key={i} fill={e.score >= 8 ? t.success : e.score >= 5 ? t.warning : t.danger} fillOpacity={0.75} />)}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
         </>
       ) : (
-        <div style={{ color: t.textMuted, fontSize: 13, padding: 40, textAlign: "center" }}>No growth data for selected categories.</div>
+        <div style={{ color: t.textMuted, fontSize: 13, padding: 40, textAlign: "center", fontFamily: t.fontBody }}>No growth data for selected categories.</div>
       )}
       {flanking.length > 0 && (
         <>
-          <div style={{ color: t.text, fontWeight: 600, fontSize: 14, marginBottom: 10, marginTop: 20 }}>Flanking Moves</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={DIVIDER} />
+          <div style={{ fontFamily: t.fontMono, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.15em", color: t.textMuted, marginBottom: 16 }}>{"\u25AA"} Flanking Moves</div>
+          <div style={{ display: "flex", flexDirection: "column" }}>
             {flanking.map((f, i) => (
-              <div key={i} style={{ background: t.surfaceHover, borderRadius: 8, padding: "10px 14px", display: "grid", gridTemplateColumns: "100px 16px 140px 1fr", alignItems: "center", gap: 8 }}>
-                <span style={{ color: t.success, fontWeight: 700, fontSize: 13 }}>{f.attacker}</span>
-                <span style={{ color: t.textMuted }}>{"\u2192"}</span>
-                <span style={{ color: t.danger, fontWeight: 600, fontSize: 13 }}>{f.target}</span>
-                <span style={{ color: t.textMuted, fontSize: 12 }}>{f.angle}</span>
+              <div key={i} style={{ display: "flex", alignItems: "baseline", gap: 12, padding: "12px 0", borderBottom: i < flanking.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none" }}>
+                <span style={{ fontFamily: t.fontBody, color: t.accentGreen, fontWeight: 700, fontSize: 13, minWidth: 90 }}>{f.attacker}</span>
+                <span style={{ color: t.textFaint, fontFamily: t.fontMono, fontSize: 10 }}>{"\u2192"}</span>
+                <span style={{ fontFamily: t.fontBody, color: t.danger, fontWeight: 600, fontSize: 13, minWidth: 130 }}>{f.target}</span>
+                <span style={{ fontFamily: t.fontBody, color: t.textMuted, fontSize: 12 }}>{f.angle}</span>
               </div>
             ))}
           </div>
         </>
       )}
-      <div style={{ marginTop: 20, background: t.surfaceHover, borderRadius: 8, padding: "14px 16px", borderLeft: `3px solid ${t.danger}` }}>
-        <div style={{ color: t.danger, fontWeight: 600, fontSize: 13, marginBottom: 6 }}>Consolidation Watch</div>
-        <div style={{ color: t.textMuted, fontSize: 12, lineHeight: 1.6 }}>
+      <div style={{ ...GLASS, marginTop: 24, padding: "16px 20px", borderLeft: `2px solid ${t.accent}` }}>
+        <div style={{ ...SECTION_LABEL(t), marginBottom: 6 }}>{"\u25AA"} Consolidation Watch</div>
+        <div style={BODY_TEXT(t)}>
           Cognigy acquired by NICE ($955M) {"\u00b7"} Kustomer spun off from Meta ($250M) {"\u00b7"} Helpshift acquired by Keywords Studios ($75M) {"\u00b7"} Zendesk planning 2+ more acquisitions in 2026 {"\u00b7"} PE-backed Zendesk targeting IPO/sale within 3-5 years {"\u00b7"} Sprinklr market cap collapsed from $7B to $1.5B
         </div>
       </div>
@@ -611,7 +610,6 @@ function LeafletMapInner({ data, cityGroups, getDominantColor, t }) {
   const L = require("leaflet");
   const { MapContainer, TileLayer, CircleMarker, Tooltip: LTooltip } = require("react-leaflet");
 
-  // Inject Leaflet CSS once
   if (typeof window !== "undefined" && !document.getElementById("leaflet-css")) {
     const link = document.createElement("link");
     link.id = "leaflet-css";
@@ -621,40 +619,29 @@ function LeafletMapInner({ data, cityGroups, getDominantColor, t }) {
   }
 
   return (
-    <MapContainer
-      center={[30, 0]}
-      zoom={2}
-      minZoom={2}
-      maxZoom={12}
-      scrollWheelZoom={true}
-      style={{ width: "100%", height: 520, borderRadius: 12, zIndex: 1 }}
-    >
+    <MapContainer center={[30, 0]} zoom={2} minZoom={2} maxZoom={12} scrollWheelZoom={true} style={{ width: "100%", height: 520, borderRadius: 4, zIndex: 1 }}>
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
       />
       {cityGroups.map(city => {
         const r = 6 + Math.sqrt(city.companies.length) * 3;
         const color = getDominantColor(city.companies);
         return (
-          <CircleMarker
-            key={city.city}
-            center={[city.lat, city.lng]}
-            radius={r}
-            pathOptions={{ fillColor: color, fillOpacity: 0.85, color: "#fff", weight: 2 }}
-          >
+          <CircleMarker key={city.city} center={[city.lat, city.lng]} radius={r}
+            pathOptions={{ fillColor: color, fillOpacity: 0.8, color: "rgba(255,255,255,0.3)", weight: 1 }}>
             <LTooltip direction="top" offset={[0, -r]} opacity={1}>
               <div style={{ minWidth: 180 }}>
                 <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{city.city}</div>
                 {city.companies.slice(0, 8).map(c => (
                   <div key={c.name} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                    <div style={{ width: 7, height: 7, borderRadius: "50%", background: CAT_COLORS[c.category] || "#3b82f6", flexShrink: 0 }} />
+                    <div style={{ width: 7, height: 7, borderRadius: "50%", background: CAT_COLORS[c.category] || "#e63926", flexShrink: 0 }} />
                     <span style={{ fontSize: 11, fontWeight: 600 }}>{c.name}</span>
-                    <span style={{ fontSize: 10, color: "#666" }}>{c.category}</span>
+                    <span style={{ fontSize: 10, color: "rgba(255,255,255,0.5)" }}>{c.category}</span>
                   </div>
                 ))}
                 {city.companies.length > 8 && (
-                  <div style={{ fontSize: 10, color: "#888", marginTop: 2 }}>+{city.companies.length - 8} more</div>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>+{city.companies.length - 8} more</div>
                 )}
               </div>
             </LTooltip>
@@ -669,7 +656,6 @@ const LeafletMap = dynamic(() => Promise.resolve(LeafletMapInner), { ssr: false 
 
 function HQMap({ data }) {
   const t = useTheme();
-
   const cityGroups = useMemo(() => {
     const groups = {};
     data.forEach(c => {
@@ -690,19 +676,18 @@ function HQMap({ data }) {
 
   return (
     <div>
-      <h3 style={{ color: t.text, margin: "0 0 4px", fontSize: 18, fontWeight: 700 }}>Global HQ Locations</h3>
-      <p style={{ color: t.textMuted, margin: "0 0 16px", fontSize: 13 }}>
-        Showing {data.length} platforms across {cityGroups.length} cities. Click and drag to pan, scroll to zoom.
-      </p>
+      <div style={SECTION_LABEL(t)}>{"\u25AA"} HQ Map</div>
+      <h3 style={SECTION_HEADING(t)}>Global HQ Locations</h3>
+      <p style={{ ...BODY_TEXT(t), marginBottom: 24 }}>{data.length} platforms across {cityGroups.length} cities. Click and drag to pan, scroll to zoom.</p>
       <LeafletMap data={data} cityGroups={cityGroups} getDominantColor={getDominantColor} t={t} />
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 16 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 16, marginTop: 20 }}>
         {Object.entries(CAT_COLORS).map(([cat, color]) => {
           const count = data.filter(c => c.category === cat).length;
           if (count === 0) return null;
           return (
             <div key={cat} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <div style={{ width: 10, height: 10, borderRadius: "50%", background: color }} />
-              <span style={{ color: t.textMuted, fontSize: 11 }}>{cat} ({count})</span>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: color, opacity: 0.8 }} />
+              <span style={{ fontFamily: t.fontMono, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.1em", color: t.textMuted }}>{cat} ({count})</span>
             </div>
           );
         })}
@@ -715,19 +700,12 @@ function HQMap({ data }) {
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("dynamics");
   const [selectedCats, setSelectedCats] = useState([...ALL_CATEGORIES]);
-  const [mode, setMode] = useState("light");
-  const t = mode === "dark" ? DARK : LIGHT;
+  const t = THEME;
 
   const handleToggle = (cat) => {
-    if (cat === "ALL") {
-      setSelectedCats([...ALL_CATEGORIES]);
-      return;
-    }
-    if (selectedCats.length === 1 && selectedCats[0] === cat) {
-      setSelectedCats([...ALL_CATEGORIES]);
-    } else {
-      setSelectedCats([cat]);
-    }
+    if (cat === "ALL") { setSelectedCats([...ALL_CATEGORIES]); return; }
+    if (selectedCats.length === 1 && selectedCats[0] === cat) { setSelectedCats([...ALL_CATEGORIES]); }
+    else { setSelectedCats([cat]); }
   };
 
   const filtered = useMemo(
@@ -749,66 +727,93 @@ export default function Dashboard() {
 
   return (
     <ThemeContext.Provider value={t}>
-      <div style={{ background: t.bg, minHeight: "100vh", fontFamily: "'DM Sans', 'Segoe UI', system-ui, sans-serif", color: t.text, padding: "24px 28px", transition: "background 0.3s, color 0.3s" }}>
-        {/* Header */}
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ width: 8, height: 8, borderRadius: "50%", background: t.accent }} />
-              <span style={{ color: t.textMuted, fontSize: 12, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 600 }}>Botpress Competitive Intelligence</span>
+      <div style={{ background: t.bg, minHeight: "100vh", fontFamily: t.fontBody, color: t.text }}>
+
+        {/* Hero Section */}
+        <div style={{
+          position: "relative",
+          backgroundImage: `url(${BG_IMAGES.hero})`,
+          backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed",
+          padding: "100px 0 60px",
+        }}>
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(10,10,10,0.8) 0%, rgba(10,10,10,0.95) 100%)" }} />
+          <div style={{ position: "relative", zIndex: 2, maxWidth: 900, margin: "0 auto", padding: "0 32px" }}>
+            <div style={{ fontFamily: t.fontMono, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.3em", color: t.accent, marginBottom: 16 }}>
+              {"\u25AA"} Botpress Competitive Intelligence
             </div>
-            <button
-              onClick={() => setMode(m => m === "dark" ? "light" : "dark")}
-              style={{
-                background: t.surface, border: `1px solid ${t.border}`, borderRadius: 8,
-                padding: "6px 12px", cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
-                color: t.text, fontSize: 13, fontWeight: 500, transition: "all 0.2s",
-              }}
-              title={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-            >
-              <span style={{ fontSize: 16 }}>{mode === "dark" ? "\u2600\uFE0F" : "\uD83C\uDF19"}</span>
-              {mode === "dark" ? "Light" : "Dark"}
-            </button>
+            <h1 style={{ fontFamily: t.fontDisplay, fontSize: 52, fontWeight: 400, color: t.text, margin: 0, lineHeight: 1.1 }}>
+              AI Customer Service
+            </h1>
+            <h1 style={{ fontFamily: t.fontDisplay, fontSize: 52, fontWeight: 400, color: t.text, margin: "0 0 16px", lineHeight: 1.1 }}>
+              Competitive Landscape
+            </h1>
+            <p style={{ fontFamily: t.fontBody, fontSize: 15, color: t.textMuted, lineHeight: 1.7, maxWidth: 500 }}>
+              {filtered.length} of {competitors.length} platforms {"\u00b7"} Revenue, pricing, AI maturity, and competitive dynamics
+            </p>
           </div>
-          <h1 style={{ margin: "8px 0 0", fontSize: 26, fontWeight: 800, background: `linear-gradient(135deg, ${t.text}, ${t.accent})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-            AI Customer Service — Competitive Landscape
-          </h1>
-          <p style={{ color: t.textMuted, fontSize: 13, margin: "6px 0 0" }}>
-            {filtered.length} of {competitors.length} platforms {"\u00b7"} Revenue, pricing, AI maturity, and competitive dynamics
-          </p>
+        </div>
+
+        {/* Sticky Nav */}
+        <div style={{
+          position: "sticky", top: 0, zIndex: 100,
+          background: "rgba(10, 10, 10, 0.85)",
+          backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+          borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+        }}>
+          <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 32px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 52 }}>
+            <div style={{ fontFamily: t.fontMono, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.3em", color: t.textMuted, display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ color: t.accent }}>{"\u25AA"}</span> Botpress
+            </div>
+            <div style={{ display: "flex", gap: 24 }}>
+              {TABS.map(tab => (
+                <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
+                  background: "transparent", border: "none", cursor: "pointer", padding: "4px 0",
+                  fontFamily: t.fontMono, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.15em",
+                  color: activeTab === tab.id ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.35)",
+                  transition: "color 0.2s",
+                  borderBottom: activeTab === tab.id ? `1px solid ${t.accent}` : "1px solid transparent",
+                }}>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Category Filter */}
-        <CategoryFilter selected={selectedCats} onToggle={handleToggle} />
-
-        {/* Tabs */}
-        <div style={{ display: "flex", gap: 4, marginBottom: 24, background: t.surface, borderRadius: 10, padding: 4, border: `1px solid ${t.border}` }}>
-          {TABS.map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
-              background: activeTab === tab.id ? t.accent : "transparent",
-              color: activeTab === tab.id ? "#fff" : t.textMuted,
-              border: "none", borderRadius: 8, padding: "8px 18px",
-              fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "all 0.2s",
-            }}>
-              {tab.label}
-            </button>
-          ))}
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "20px 32px" }}>
+          <div style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: 16 }}>
+            <CategoryFilter selected={selectedCats} onToggle={handleToggle} />
+          </div>
         </div>
 
-        {/* Content */}
-        <div style={{ background: t.surface, borderRadius: 12, padding: "24px 28px", border: `1px solid ${t.border}` }}>
-          {filtered.length > 0 ? renderTab() : (
-            <div style={{ textAlign: "center", padding: 60, color: t.textMuted }}>
-              <div style={{ fontSize: 32, marginBottom: 12 }}>&#128269;</div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: t.text }}>No categories selected</div>
-              <div style={{ fontSize: 13, marginTop: 4 }}>Click a category above to see platforms</div>
+        {/* Content Section */}
+        <div style={{
+          position: "relative",
+          backgroundImage: `url(${BG_IMAGES[activeTab] || BG_IMAGES.hero})`,
+          backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed",
+          padding: "60px 0 100px",
+        }}>
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(10,10,10,0.88) 0%, rgba(10,10,10,0.95) 100%)" }} />
+          <div style={{ position: "relative", zIndex: 2, maxWidth: 1100, margin: "0 auto", padding: "0 32px" }}>
+            <div style={{ ...GLASS, padding: "36px 40px" }}>
+              {filtered.length > 0 ? renderTab() : (
+                <div style={{ textAlign: "center", padding: 80, color: t.textMuted }}>
+                  <div style={{ fontFamily: t.fontDisplay, fontSize: 36, color: t.textFaint, marginBottom: 12 }}>No data</div>
+                  <div style={{ fontFamily: t.fontBody, fontSize: 14 }}>Select a category above to see platforms</div>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
 
         {/* Footer */}
-        <div style={{ marginTop: 16, color: t.textMuted, fontSize: 11, textAlign: "center" }}>
-          Data sourced from company filings, Crunchbase, G2, Gartner, Latka, press releases {"\u00b7"} Estimates flagged where applicable {"\u00b7"} March 2026
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "40px 32px 60px" }}>
+          <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 24, textAlign: "center" }}>
+            <div style={{ fontFamily: t.fontMono, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.2em", color: "rgba(255,255,255,0.25)", lineHeight: 2 }}>
+              Data sourced from company filings, Crunchbase, G2, Gartner, Latka, press releases {"\u00b7"} Estimates flagged where applicable {"\u00b7"} March 2026
+            </div>
+          </div>
         </div>
       </div>
     </ThemeContext.Provider>

@@ -38,29 +38,49 @@ export default function Home() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "#0a0f1a",
-        fontFamily: "'DM Sans', system-ui, sans-serif",
+        position: "relative",
+        backgroundImage: "url(https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80)",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        fontFamily: "'Space Grotesk', system-ui, sans-serif",
       }}>
         <div style={{
-          background: "#111827",
-          border: "1px solid #1e293b",
-          borderRadius: 16,
-          padding: "40px 36px",
-          width: 380,
+          position: "absolute", inset: 0,
+          background: "linear-gradient(180deg, rgba(10,10,10,0.75) 0%, rgba(10,10,10,0.9) 100%)",
+        }} />
+        <div style={{
+          position: "relative", zIndex: 2,
+          width: 400,
           textAlign: "center",
+          padding: "0 24px",
         }}>
           <div style={{
-            width: 48, height: 48, borderRadius: 12,
-            background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            margin: "0 auto 20px",
-            fontSize: 22,
-          }}>🔒</div>
-          <h1 style={{ color: "#e2e8f0", fontSize: 20, fontWeight: 700, marginBottom: 6 }}>
+            fontFamily: "'Space Mono', monospace",
+            fontSize: 10,
+            textTransform: "uppercase",
+            letterSpacing: "0.3em",
+            color: "#e63926",
+            marginBottom: 20,
+          }}>
+            {"\u25AA"} Botpress
+          </div>
+          <h1 style={{
+            fontFamily: "'Playfair Display', serif",
+            fontSize: 42,
+            fontWeight: 400,
+            color: "rgba(255,255,255,0.9)",
+            margin: "0 0 8px",
+            lineHeight: 1.1,
+          }}>
             Competitive Intelligence
           </h1>
-          <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 24 }}>
-            Internal access only — enter the team password
+          <p style={{
+            fontFamily: "'Space Grotesk', sans-serif",
+            fontSize: 14,
+            color: "rgba(255,255,255,0.45)",
+            marginBottom: 40,
+          }}>
+            Internal access only
           </p>
           <form onSubmit={handleSubmit}>
             <input
@@ -71,36 +91,51 @@ export default function Home() {
               autoFocus
               style={{
                 width: "100%",
-                padding: "12px 16px",
-                background: "#1a2236",
-                border: error ? "1px solid #ef4444" : "1px solid #1e293b",
-                borderRadius: 10,
-                color: "#e2e8f0",
-                fontSize: 14,
+                padding: "14px 0",
+                background: "transparent",
+                border: "none",
+                borderBottom: error ? "1px solid #e63926" : "1px solid rgba(255,255,255,0.2)",
+                color: "rgba(255,255,255,0.9)",
+                fontSize: 15,
                 outline: "none",
                 marginBottom: 12,
-                fontFamily: "inherit",
+                fontFamily: "'Space Grotesk', sans-serif",
+                textAlign: "center",
+                letterSpacing: "0.05em",
               }}
             />
             {error && (
-              <p style={{ color: "#ef4444", fontSize: 12, marginBottom: 8 }}>
-                Incorrect password. Try again.
+              <p style={{
+                color: "#e63926",
+                fontSize: 11,
+                marginBottom: 8,
+                fontFamily: "'Space Mono', monospace",
+                textTransform: "uppercase",
+                letterSpacing: "0.1em",
+              }}>
+                Incorrect password
               </p>
             )}
             <button
               type="submit"
               style={{
                 width: "100%",
-                padding: "12px 0",
-                background: "#3b82f6",
+                padding: "14px 0",
+                background: "#e63926",
                 color: "#fff",
                 border: "none",
-                borderRadius: 10,
-                fontSize: 14,
-                fontWeight: 600,
+                borderRadius: 2,
+                fontSize: 10,
+                fontWeight: 700,
                 cursor: "pointer",
-                fontFamily: "inherit",
+                fontFamily: "'Space Mono', monospace",
+                textTransform: "uppercase",
+                letterSpacing: "0.15em",
+                marginTop: 8,
+                transition: "opacity 0.2s",
               }}
+              onMouseEnter={(e) => e.target.style.opacity = "0.85"}
+              onMouseLeave={(e) => e.target.style.opacity = "1"}
             >
               Access Dashboard
             </button>

@@ -6,6 +6,7 @@ import {
   ScatterChart, Scatter, ZAxis, Cell, PieChart, Pie,
   CartesianGrid, LabelList, ReferenceArea,
 } from "recharts";
+import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
 
 // ── THEMES ──
 const DARK = {
@@ -44,6 +45,29 @@ const AI_COLORS = {
   "Leaning into AI": "#f59e0b",
   "Hybrid": "#06b6d4",
 };
+
+// ── CITY COORDINATES ──
+const CITY_COORDS = {
+  "San Francisco, USA": { lat: 37.7749, lng: -122.4194 },
+  "Toronto, Canada": { lat: 43.6532, lng: -79.3832 },
+  "Santa Clara, USA": { lat: 37.3541, lng: -121.9552 },
+  "Redmond, USA": { lat: 47.6740, lng: -122.1215 },
+  "Cambridge, USA": { lat: 42.3736, lng: -71.1097 },
+  "Chennai, India": { lat: 13.0827, lng: 80.2707 },
+  "D\u00fcsseldorf, Germany": { lat: 51.2277, lng: 6.7735 },
+  "Menlo Park, USA": { lat: 37.4530, lng: -122.1817 },
+  "Armonk, USA": { lat: 41.1265, lng: -73.7140 },
+  "San Ramon, USA": { lat: 37.7799, lng: -121.9780 },
+  "Palo Alto, USA": { lat: 37.4419, lng: -122.1430 },
+  "New York, USA": { lat: 40.7128, lng: -74.0060 },
+  "Copenhagen, Denmark": { lat: 55.6761, lng: 12.5683 },
+  "Boston, USA": { lat: 42.3601, lng: -71.0589 },
+  "Szczecin, Poland": { lat: 53.4285, lng: 14.5528 },
+  "St. Louis, USA": { lat: 38.6270, lng: -90.1994 },
+  "Berlin, Germany": { lat: 52.5200, lng: 13.4050 },
+  "Bangalore, India": { lat: 12.9716, lng: 77.5946 },
+};
+const GEO_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
 // ── DATA ──
 const competitors = [
@@ -91,6 +115,7 @@ const TABS = [
   { id: "revenue", label: "Revenue & Funding" },
   { id: "pricing", label: "Pricing Models" },
   { id: "aiPosture", label: "AI Maturity" },
+  { id: "hqMap", label: "HQ Map" },
 ];
 
 // ── TOOLTIP ──
@@ -580,6 +605,124 @@ function CompetitiveDynamics({ data }) {
   );
 }
 
+// ── 6. HQ MAP ──
+function HQMap({ data }) {
+  const t = useTheme();
+  const [hovered, setHovered] = useState(null);
+
+  const cityGroups = useMemo(() => {
+    const groups = {};
+    data.forEach(c => {
+      const coords = CITY_COORDS[c.hq];
+      if (!coords) return;
+      if (!groups[c.hq]) groups[c.hq] = { ...coords, city: c.hq, companies: [] };
+      groups[c.hq].companies.push(c);
+    });
+    return Object.values(groups);
+  }, [data]);
+
+  const getDominantColor = (companies) => {
+    const counts = {};
+    companies.forEach(c => { counts[c.category] = (counts[c.category] || 0) + 1; });
+    const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+    return top ? CAT_COLORS[top[0]] || t.accent : t.accent;
+  };
+
+  return (
+    <div>
+      <h3 style={{ color: t.text, margin: "0 0 4px", fontSize: 18, fontWeight: 700 }}>Global HQ Locations</h3>
+      <p style={{ color: t.textMuted, margin: "0 0 16px", fontSize: 13 }}>
+        Showing {data.length} platforms across {cityGroups.length} cities. Hover pins for details.
+      </p>
+      <div style={{ position: "relative" }}>
+        <ComposableMap
+          projection="geoNaturalEarth1"
+          projectionConfig={{ scale: 160, center: [10, 20] }}
+          style={{ width: "100%", height: "auto", maxHeight: 520 }}
+        >
+          <Geographies geography={GEO_URL}>
+            {({ geographies }) =>
+              geographies.map(geo => (
+                <Geography
+                  key={geo.rsmKey}
+                  geography={geo}
+                  fill={t.surfaceHover}
+                  stroke={t.border}
+                  strokeWidth={0.5}
+                  style={{
+                    default: { outline: "none" },
+                    hover: { outline: "none", fill: t.border },
+                    pressed: { outline: "none" },
+                  }}
+                />
+              ))
+            }
+          </Geographies>
+          {cityGroups.map(city => {
+            const r = 4 + Math.sqrt(city.companies.length) * 3;
+            const color = getDominantColor(city.companies);
+            return (
+              <Marker key={city.city} coordinates={[city.lng, city.lat]}>
+                <circle
+                  r={r}
+                  fill={color}
+                  fillOpacity={0.85}
+                  stroke="#fff"
+                  strokeWidth={1.5}
+                  style={{ cursor: "pointer" }}
+                  onMouseEnter={() => setHovered(city)}
+                  onMouseLeave={() => setHovered(null)}
+                />
+                {city.companies.length > 1 && (
+                  <text
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    style={{ fontSize: Math.max(7, r - 2), fill: "#fff", fontWeight: 700, pointerEvents: "none" }}
+                  >
+                    {city.companies.length}
+                  </text>
+                )}
+              </Marker>
+            );
+          })}
+        </ComposableMap>
+        {hovered && (
+          <div style={{
+            position: "absolute", top: 12, right: 12,
+            background: t.surface, border: `1px solid ${t.border}`, borderRadius: 10,
+            padding: "14px 18px", minWidth: 220, maxWidth: 320, zIndex: 10,
+            boxShadow: "0 4px 20px rgba(0,0,0,0.12)",
+          }}>
+            <div style={{ fontWeight: 700, color: t.text, fontSize: 14, marginBottom: 8 }}>{hovered.city}</div>
+            {hovered.companies.slice(0, 8).map(c => (
+              <div key={c.name} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: CAT_COLORS[c.category] || t.accent, flexShrink: 0 }} />
+                <span style={{ color: t.text, fontSize: 12, fontWeight: 600 }}>{c.name}</span>
+                <span style={{ color: t.textMuted, fontSize: 11 }}>{c.category}</span>
+              </div>
+            ))}
+            {hovered.companies.length > 8 && (
+              <div style={{ color: t.textMuted, fontSize: 11, marginTop: 4 }}>+{hovered.companies.length - 8} more</div>
+            )}
+          </div>
+        )}
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 16 }}>
+        {Object.entries(CAT_COLORS).map(([cat, color]) => {
+          const count = data.filter(c => c.category === cat).length;
+          if (count === 0) return null;
+          return (
+            <div key={cat} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ width: 10, height: 10, borderRadius: "50%", background: color }} />
+              <span style={{ color: t.textMuted, fontSize: 11 }}>{cat} ({count})</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ── MAIN DASHBOARD ──
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("dynamics");
@@ -611,6 +754,7 @@ export default function Dashboard() {
       case "pricing": return <PricingModels data={filtered} />;
       case "aiPosture": return <AIMaturity data={filtered} />;
       case "dynamics": return <CompetitiveDynamics data={filtered} />;
+      case "hqMap": return <HQMap data={filtered} />;
       default: return null;
     }
   };

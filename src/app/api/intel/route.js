@@ -1,43 +1,61 @@
 import { supabase } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 
+// Deduplicate by headline — keep the earliest entry for each unique headline
+function dedupeByHeadline(items) {
+  const seen = new Map();
+  for (const item of items) {
+    // Normalize: lowercase, trim, strip trailing source attribution like " - TechCrunch"
+    const key = item.headline?.toLowerCase().trim().replace(/\s*[-–|]\s*[^-–|]+$/, "") || "";
+    if (!seen.has(key)) {
+      seen.set(key, item);
+    }
+  }
+  return Array.from(seen.values());
+}
+
 // GET: Fetch intel updates for the dashboard
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
-  const category = searchParams.get("category"); // funding, feature, leadership, pivot
+  const category = searchParams.get("category");
   const company = searchParams.get("company");
-  const limit = parseInt(searchParams.get("limit") || "50");
-  const offset = parseInt(searchParams.get("offset") || "0");
+  const limit = parseInt(searchParams.get("limit") || "200");
 
   try {
+    // Fetch a larger set to dedupe from (duplicates reduce the count)
     let query = supabase
       .from("intel_updates")
-      .select("*", { count: "exact" })
+      .select("*")
       .order("published_at", { ascending: false })
-      .range(offset, offset + limit - 1);
+      .limit(500);
 
     if (category) query = query.eq("category", category);
     if (company) query = query.ilike("company", `%${company}%`);
 
-    const { data, error, count } = await query;
+    const { data, error } = await query;
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Get category counts
+    // Deduplicate by headline
+    const unique = dedupeByHeadline(data || []);
+
+    // Get category counts from deduplicated set (fetch all for counts)
     const { data: allData } = await supabase
       .from("intel_updates")
-      .select("category");
+      .select("id, headline, category")
+      .limit(1000);
 
-    const categoryCounts = (allData || []).reduce((acc, item) => {
+    const uniqueAll = dedupeByHeadline(allData || []);
+    const categoryCounts = uniqueAll.reduce((acc, item) => {
       acc[item.category] = (acc[item.category] || 0) + 1;
       return acc;
     }, {});
 
     return NextResponse.json({
-      updates: data || [],
-      total: count,
+      updates: unique.slice(0, limit),
+      total: unique.length,
       categoryCounts,
     });
   } catch (err) {

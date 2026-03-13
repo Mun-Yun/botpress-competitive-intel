@@ -92,14 +92,27 @@ export async function GET(request) {
       return NextResponse.json({ message: "No new items found", inserted: 0 });
     }
 
-    // Check for duplicates by headline
+    // Dedupe within the batch itself (same headline from different company searches)
+    const batchSeen = new Map();
+    for (const item of allItems) {
+      const key = item.headline?.toLowerCase().trim().replace(/\s*[-–|]\s*[^-–|]+$/, "") || "";
+      if (!batchSeen.has(key)) {
+        batchSeen.set(key, item);
+      }
+    }
+    allItems = Array.from(batchSeen.values());
+
+    // Check for duplicates against existing DB entries
     const { data: existing } = await supabase
       .from("intel_updates")
       .select("headline")
       .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
 
-    const existingHeadlines = new Set((existing || []).map((e) => e.headline));
-    const newItems = allItems.filter((item) => !existingHeadlines.has(item.headline));
+    const existingKeys = new Set((existing || []).map((e) => e.headline?.toLowerCase().trim().replace(/\s*[-–|]\s*[^-–|]+$/, "") || ""));
+    const newItems = allItems.filter((item) => {
+      const key = item.headline?.toLowerCase().trim().replace(/\s*[-–|]\s*[^-–|]+$/, "") || "";
+      return !existingKeys.has(key);
+    });
 
     if (newItems.length === 0) {
       return NextResponse.json({ message: "All items already exist", inserted: 0 });

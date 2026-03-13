@@ -970,13 +970,13 @@ export default function Dashboard() {
             <div style={{ fontFamily: t.fontMono, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.3em", color: t.textMuted, display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ color: t.accent }}>{"\u25AA"}</span> Botpress
             </div>
-            <div style={{ display: "flex", gap: 24 }}>
+            <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
               {TABS.map(tab => (
                 <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
                   background: "transparent", border: "none", cursor: "pointer", padding: "4px 0",
-                  fontFamily: t.fontMono, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.15em",
+                  fontFamily: t.fontMono, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.12em",
                   color: activeTab === tab.id ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.35)",
-                  transition: "color 0.2s",
+                  transition: "color 0.2s", whiteSpace: "nowrap",
                   borderBottom: activeTab === tab.id ? `1px solid ${t.accent}` : "1px solid transparent",
                 }}>
                   {tab.label}

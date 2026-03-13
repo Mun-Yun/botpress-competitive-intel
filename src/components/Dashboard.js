@@ -89,6 +89,7 @@ const BG_IMAGES = {
   pricing: "https://images.unsplash.com/photo-1507400492013-162706c8c05e?w=1920&q=80",
   aiPosture: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=1920&q=80",
   hqMap: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1920&q=80",
+  liveIntel: "https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=1920&q=80",
 };
 
 // ── DATA ──
@@ -110,9 +111,9 @@ const competitors = [
   { name: "Gorgias", category: "Specialist", hq: "San Francisco, USA", revenue: 71, revenueLabel: "$69-73M ARR", aiPosture: "Hybrid", pricingModel: "Ticket + Resolution", resolutionPrice: 0.90, seatPrice: null, fundingOrVal: "$96M raised", founded: 2015, automationRate: "N/A", customers: 15000, aiScore: 6, marketBreadth: 3, automationDepth: 7 },
   { name: "Gladly", category: "Specialist", hq: "San Francisco, USA", revenue: 48, revenueLabel: "$47.7M rev", aiPosture: "Leaning into AI", pricingModel: "Seat-based", resolutionPrice: null, seatPrice: null, fundingOrVal: "$208M raised", founded: 2014, automationRate: "N/A", customers: null, aiScore: 6, marketBreadth: 3, automationDepth: 6 },
   { name: "DevRev", category: "Specialist", hq: "Palo Alto, USA", revenue: 15, revenueLabel: "~$15M (est.)", aiPosture: "AI-First", pricingModel: "Issue-based", resolutionPrice: null, seatPrice: 25, fundingOrVal: "$150M+ / $1.15B val", founded: 2020, automationRate: "N/A", customers: null, aiScore: 8, marketBreadth: 3, automationDepth: 7 },
-  { name: "Helpshift", category: "Specialist", hq: "Keller, USA", revenue: 25, revenueLabel: "~$25M (est.)", aiPosture: "Hybrid", pricingModel: "Ticket-based", resolutionPrice: 0.90, seatPrice: null, fundingOrVal: "Acquired $75M", founded: 2011, automationRate: "N/A", customers: null, aiScore: 5, marketBreadth: 2, automationDepth: 6 },
+  { name: "Helpshift", category: "Specialist", hq: "San Francisco, USA", revenue: 25, revenueLabel: "~$25M (est.)", aiPosture: "Hybrid", pricingModel: "Ticket-based", resolutionPrice: 0.90, seatPrice: null, fundingOrVal: "Acquired $75M", founded: 2011, automationRate: "N/A", customers: null, aiScore: 5, marketBreadth: 2, automationDepth: 6 },
   { name: "Polimorphic", category: "Specialist", hq: "New York, USA", revenue: 5, revenueLabel: "~$5M (est.)", aiPosture: "AI-First", pricingModel: "Population-based", resolutionPrice: null, seatPrice: null, fundingOrVal: "$28M raised", founded: 2022, automationRate: "N/A", customers: null, aiScore: 7, marketBreadth: 1, automationDepth: 7 },
-  { name: "Kustomer", category: "Up-and-Coming", hq: "Short Hills, USA", revenue: 35, revenueLabel: "~$35M (est.)", aiPosture: "AI-First", pricingModel: "Conversation-based", resolutionPrice: 0.60, seatPrice: 89, fundingOrVal: "$250M val (2023)", founded: 2015, automationRate: "N/A", customers: null, aiScore: 7, marketBreadth: 5, automationDepth: 7 },
+  { name: "Kustomer", category: "Up-and-Coming", hq: "New York, USA", revenue: 35, revenueLabel: "~$35M (est.)", aiPosture: "AI-First", pricingModel: "Conversation-based", resolutionPrice: 0.60, seatPrice: 89, fundingOrVal: "$250M val (2023)", founded: 2015, automationRate: "N/A", customers: null, aiScore: 7, marketBreadth: 5, automationDepth: 7 },
   { name: "Sprinklr", category: "Up-and-Coming", hq: "New York, USA", revenue: 796, revenueLabel: "$796M rev", aiPosture: "Leaning into AI", pricingModel: "Seat-based", resolutionPrice: null, seatPrice: 249, fundingOrVal: "Public (NYSE: CXM)", founded: 2009, automationRate: "N/A", customers: null, aiScore: 6, marketBreadth: 7, automationDepth: 5 },
   { name: "Front", category: "Up-and-Coming", hq: "San Francisco, USA", revenue: 100, revenueLabel: "$100M ARR", aiPosture: "Leaning into AI", pricingModel: "Seat + Resolution", resolutionPrice: 0.70, seatPrice: 65, fundingOrVal: "$204M / $1.7B val", founded: 2013, automationRate: "N/A", customers: 9000, aiScore: 5, marketBreadth: 5, automationDepth: 5 },
   { name: "Dixa", category: "Up-and-Coming", hq: "Copenhagen, Denmark", revenue: 25, revenueLabel: "~$25M (est.)", aiPosture: "Leaning into AI", pricingModel: "Seat-based", resolutionPrice: null, seatPrice: 109, fundingOrVal: "$155M raised", founded: 2015, automationRate: "N/A", customers: null, aiScore: 5, marketBreadth: 4, automationDepth: 5 },
@@ -138,6 +139,7 @@ const TABS = [
   { id: "pricing", label: "Pricing" },
   { id: "aiPosture", label: "AI Maturity" },
   { id: "hqMap", label: "HQ Map" },
+  { id: "liveIntel", label: "Live Intel" },
 ];
 
 // ── SHARED STYLES ──
@@ -696,6 +698,194 @@ function HQMap({ data }) {
   );
 }
 
+// ── LIVE INTEL ──
+const INTEL_CATEGORY_ICONS = {
+  funding: "💰",
+  feature: "🚀",
+  leadership: "👤",
+  pivot: "🔄",
+};
+
+const INTEL_CATEGORY_COLORS = {
+  funding: "#4ade80",
+  feature: "#a78bfa",
+  leadership: "#fbbf24",
+  pivot: "#f472b6",
+};
+
+function LiveIntel() {
+  const t = useTheme();
+  const [updates, setUpdates] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("all");
+  const [categoryCounts, setCategoryCounts] = useState({});
+  const [collecting, setCollecting] = useState(false);
+
+  const fetchUpdates = async () => {
+    try {
+      setLoading(true);
+      const params = filter !== "all" ? `?category=${filter}` : "";
+      const res = await fetch(`/api/intel${params}`);
+      const data = await res.json();
+      setUpdates(data.updates || []);
+      setCategoryCounts(data.categoryCounts || {});
+    } catch (e) {
+      console.error("Failed to fetch intel:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const runCollection = async (source) => {
+    setCollecting(true);
+    try {
+      const res = await fetch(`/api/collect/${source}`);
+      const data = await res.json();
+      alert(`${source}: ${data.message || data.error}`);
+      fetchUpdates();
+    } catch (e) {
+      alert(`Error: ${e.message}`);
+    } finally {
+      setCollecting(false);
+    }
+  };
+
+  useEffect(() => { fetchUpdates(); }, [filter]);
+
+  const timeAgo = (dateStr) => {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days}d ago`;
+  };
+
+  const totalUpdates = Object.values(categoryCounts).reduce((a, b) => a + b, 0);
+
+  return (
+    <div>
+      <div style={{ fontFamily: t.fontMono, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.3em", color: t.accent, marginBottom: 8 }}>
+        {"\u25AA"} Live Intelligence Feed
+      </div>
+      <div style={{ fontFamily: t.fontDisplay, fontSize: 36, color: t.text, marginBottom: 8 }}>
+        Competitor Updates
+      </div>
+      <p style={{ fontFamily: t.fontBody, fontSize: 14, color: t.textMuted, marginBottom: 32 }}>
+        Auto-collected from news, RSS feeds, and announcements. Cron runs every 4-6 hours.
+      </p>
+
+      {/* Stats Row */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 32 }}>
+        {["funding", "feature", "leadership", "pivot"].map((cat) => (
+          <div key={cat} style={{
+            background: t.surface, backdropFilter: "blur(20px)",
+            border: `1px solid ${t.borderSubtle}`, borderRadius: 4, padding: "20px 16px",
+            cursor: "pointer", transition: "border-color 0.2s",
+            borderColor: filter === cat ? INTEL_CATEGORY_COLORS[cat] : t.borderSubtle,
+          }} onClick={() => setFilter(filter === cat ? "all" : cat)}>
+            <div style={{ fontSize: 28, marginBottom: 8 }}>{INTEL_CATEGORY_ICONS[cat]}</div>
+            <div style={{ fontFamily: t.fontDisplay, fontSize: 32, color: t.text }}>{categoryCounts[cat] || 0}</div>
+            <div style={{ fontFamily: t.fontMono, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.2em", color: t.textMuted, marginTop: 4 }}>
+              {cat}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Controls */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 24, alignItems: "center" }}>
+        <button onClick={() => runCollection("news")} disabled={collecting} style={{
+          background: t.surface, border: `1px solid ${t.border}`, borderRadius: 4, padding: "8px 16px",
+          fontFamily: t.fontMono, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.15em",
+          color: t.text, cursor: collecting ? "wait" : "pointer",
+        }}>
+          {collecting ? "Collecting..." : "▪ Collect News Now"}
+        </button>
+        <button onClick={() => runCollection("rss")} disabled={collecting} style={{
+          background: t.surface, border: `1px solid ${t.border}`, borderRadius: 4, padding: "8px 16px",
+          fontFamily: t.fontMono, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.15em",
+          color: t.text, cursor: collecting ? "wait" : "pointer",
+        }}>
+          {collecting ? "Collecting..." : "▪ Collect RSS Now"}
+        </button>
+        <div style={{ flex: 1 }} />
+        <div style={{ fontFamily: t.fontMono, fontSize: 10, color: t.textMuted, letterSpacing: "0.1em" }}>
+          {totalUpdates} total updates
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div style={{ borderBottom: `1px solid ${t.borderSubtle}`, marginBottom: 24 }} />
+
+      {/* Updates Feed */}
+      {loading ? (
+        <div style={{ textAlign: "center", padding: 60, color: t.textMuted }}>
+          <div style={{ fontFamily: t.fontDisplay, fontSize: 24, color: t.textFaint, marginBottom: 8 }}>Loading...</div>
+        </div>
+      ) : updates.length === 0 ? (
+        <div style={{ textAlign: "center", padding: 60, color: t.textMuted }}>
+          <div style={{ fontFamily: t.fontDisplay, fontSize: 28, color: t.textFaint, marginBottom: 8 }}>No updates yet</div>
+          <p style={{ fontFamily: t.fontBody, fontSize: 14, marginBottom: 24 }}>
+            Click &quot;Collect News Now&quot; or &quot;Collect RSS Now&quot; above to start gathering intel.
+          </p>
+          <p style={{ fontFamily: t.fontMono, fontSize: 11, color: t.textFaint }}>
+            Once deployed, Vercel cron jobs will auto-collect every 4-6 hours.
+          </p>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          {updates.map((item, i) => (
+            <div key={item.id || i} style={{
+              display: "flex", alignItems: "flex-start", gap: 16, padding: "16px 0",
+              borderBottom: `1px solid ${t.borderSubtle}`,
+            }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center",
+                background: `${INTEL_CATEGORY_COLORS[item.category]}15`,
+                border: `1px solid ${INTEL_CATEGORY_COLORS[item.category]}30`,
+                fontSize: 18, flexShrink: 0,
+              }}>
+                {INTEL_CATEGORY_ICONS[item.category] || "📌"}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                  <span style={{
+                    fontFamily: t.fontMono, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.15em",
+                    color: INTEL_CATEGORY_COLORS[item.category], fontWeight: 600,
+                  }}>
+                    {item.category}
+                  </span>
+                  <span style={{ fontFamily: t.fontMono, fontSize: 9, color: t.textFaint }}>·</span>
+                  <span style={{ fontFamily: t.fontMono, fontSize: 9, color: t.textMuted, letterSpacing: "0.1em" }}>
+                    {item.company}
+                  </span>
+                </div>
+                <div style={{ fontFamily: t.fontBody, fontSize: 14, color: t.text, lineHeight: 1.5, marginBottom: 4 }}>
+                  {item.source_url ? (
+                    <a href={item.source_url} target="_blank" rel="noopener noreferrer" style={{ color: t.text, textDecoration: "none" }}>
+                      {item.headline}
+                    </a>
+                  ) : item.headline}
+                </div>
+                {item.summary && (
+                  <div style={{ fontFamily: t.fontBody, fontSize: 12, color: t.textMuted, lineHeight: 1.5 }}>
+                    {item.summary.substring(0, 200)}{item.summary.length > 200 ? "..." : ""}
+                  </div>
+                )}
+              </div>
+              <div style={{ fontFamily: t.fontMono, fontSize: 9, color: t.textFaint, whiteSpace: "nowrap", flexShrink: 0, letterSpacing: "0.1em" }}>
+                {item.published_at ? timeAgo(item.published_at) : ""}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── MAIN DASHBOARD ──
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("dynamics");
@@ -721,6 +911,7 @@ export default function Dashboard() {
       case "aiPosture": return <AIMaturity data={filtered} />;
       case "dynamics": return <CompetitiveDynamics data={filtered} />;
       case "hqMap": return <HQMap data={filtered} />;
+      case "liveIntel": return <LiveIntel />;
       default: return null;
     }
   };

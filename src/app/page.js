@@ -1,28 +1,29 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Dashboard from "@/components/Dashboard";
+import { useRouter } from "next/navigation";
 
 const SITE_PASSWORD = process.env.NEXT_PUBLIC_SITE_PASSWORD || "botpress2026";
 
 export default function Home() {
-  const [authed, setAuthed] = useState(false);
+  const router = useRouter();
   const [input, setInput] = useState("");
   const [error, setError] = useState(false);
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
     const saved = sessionStorage.getItem("bp-intel-auth");
-    if (saved === "true") setAuthed(true);
+    if (saved === "true") {
+      router.replace("/home");
+    }
     setChecking(false);
-  }, []);
+  }, [router]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (input === SITE_PASSWORD) {
       sessionStorage.setItem("bp-intel-auth", "true");
-      setAuthed(true);
-      setError(false);
+      router.push("/home");
     } else {
       setError(true);
       setInput("");
@@ -31,8 +32,7 @@ export default function Home() {
 
   if (checking) return null;
 
-  if (!authed) {
-    return (
+  return (
       <div style={{
         minHeight: "100vh",
         display: "flex",
@@ -142,8 +142,5 @@ export default function Home() {
           </form>
         </div>
       </div>
-    );
-  }
-
-  return <Dashboard />;
+  );
 }
